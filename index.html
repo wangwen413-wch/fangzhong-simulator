@@ -390,10 +390,10 @@ body{background:var(--bg);color:var(--ink)}
   .br{right:max(12px,env(safe-area-inset-right,0px));bottom:14px}
   .shopui{grid-template-columns:repeat(4,1fr)}
   .shopui button small{display:none}
-  .tut{left:132px;right:132px;max-width:none;margin:0;bottom:8px;padding:8px 12px}
+  .tut{left:max(10px,env(safe-area-inset-left,0px));right:auto;width:min(52%,440px);max-width:none;margin:0;bottom:8px;padding:8px 12px}
   .tut-ava{width:44px;height:44px}
   .tut-body p{font-size:13.5px;min-height:2.6em;margin:2px 0 6px;line-height:1.55}
-  .creator{left:132px;right:132px;max-width:none;margin:0;bottom:8px;max-height:calc(100% - 16px)}
+  .creator{left:max(10px,env(safe-area-inset-left,0px));right:auto;width:min(52%,440px);max-width:none;margin:0;top:8px;bottom:8px;max-height:none}
   .signui{top:8px}
   .modal{padding:6px}
   .box{max-width:520px;max-height:calc(100vh - 12px);max-height:calc(100dvh - 12px);padding:12px 18px}
@@ -2428,7 +2428,7 @@ function initScene(){
   outline(add(B(.3,.44,.14,.05),gradeHex(0xd93a2f),0,.54,.34,ride),1.06);
   add(new THREE.CylinderGeometry(.02,.02,.5,6),0x5b6475,0,.82,.38,ride).rotation.z=Math.PI/2;
   W.ride=ride;applyLook();
-  const size=()=>{const w=el.clientWidth||320,h=el.clientHeight||360;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()};
+  const size=()=>{const w=el.clientWidth||320,h=el.clientHeight||360;R.setSize(w,h,false);cam.aspect=w/h;W.vw=w;W.vh=h;cam.updateProjectionMatrix();W.vo=null};
   size();if(window.ResizeObserver)new ResizeObserver(size).observe(el);else window.addEventListener('resize',size);
 
   // 點地圖
@@ -2479,7 +2479,10 @@ function initScene(){
   addEventListener('keyup',e=>{if(km[e.code])W.keys[km[e.code]]=false});
 
   let t0=performance.now();
-  const loop=now=>{const dt=clamp((now-t0)/1000,0,.05);t0=now;tick(dt,now/1000);requestAnimationFrame(loop)};
+  const landMQ=window.matchMedia?matchMedia('(orientation:landscape) and (max-height:520px) and (pointer:coarse)'):null;
+  /* 手機橫放時，教學／捏角色的面板佔左半邊，鏡頭把畫面往右推，角色才不會被蓋住 */
+  const setShift=on=>{const want=!!(on&&landMQ&&landMQ.matches&&W.vw);if(want){if(W.vo!=='s'){cam.setViewOffset(W.vw,W.vh,-W.vw*.22,0,W.vw,W.vh);W.vo='s'}}else if(W.vo==='s'){cam.clearViewOffset();W.vo=null}};
+  const loop=now=>{const dt=clamp((now-t0)/1000,0,.05);t0=now;setShift(!!(W.creator||W.tut));tick(dt,now/1000);requestAnimationFrame(loop)};
   requestAnimationFrame(loop);
 }
 function blocked(x,z){
