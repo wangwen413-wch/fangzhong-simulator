@@ -381,10 +381,10 @@ body{background:var(--bg);color:var(--ink)}
 /* ===== 手機橫放 ===== */
 @media (orientation:landscape) and (max-height:520px) and (pointer:coarse){
   .wrap{max-width:none;padding:max(4px,env(safe-area-inset-top,0px)) max(6px,env(safe-area-inset-right,0px)) max(4px,env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))}
-  html.nlb .wrap{padding-bottom:calc(58px + env(safe-area-inset-bottom,0px))}
-  .main,html.nlb .main{height:auto;min-height:0}
+  html.nlb .wrap{padding-bottom:max(4px,env(safe-area-inset-bottom,0px))}
+  .main,html.nlb .main{height:auto;min-height:0;margin:0}
   .scene{min-height:0;height:calc(100vh - 8px);height:calc(100dvh - 8px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
-  html.nlb .scene{min-height:0;height:calc(100vh - 70px);height:calc(100dvh - 70px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+  html.nlb .scene{min-height:0;height:calc(100vh - 8px);height:calc(100dvh - 8px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
   .callbar{top:56px;bottom:auto}
   .joy{left:max(16px,env(safe-area-inset-left,0px));bottom:14px;width:112px;height:112px}
   .br{right:max(12px,env(safe-area-inset-right,0px));bottom:14px}
