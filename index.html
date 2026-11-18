@@ -123,6 +123,8 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .feed{position:absolute;left:10px;top:60px;z-index:2;max-width:calc(100% - 160px);background:rgba(40,32,28,.55);color:#fff;border-radius:14px;padding:5px 13px;font-size:13px;pointer-events:none;opacity:0;transform:translateY(-4px);transition:opacity .35s,transform .35s}
 .feed.show{opacity:1;transform:none}
 .guide{position:absolute;left:64px;top:96px;z-index:3;max-width:min(46%,380px);background:var(--paper);color:var(--ink);border:2.5px solid var(--frame);border-radius:16px;box-shadow:3px 3px 0 var(--frame);padding:8px 12px;font-size:13.5px;line-height:1.55}
+.codebox{display:block;width:100%;box-sizing:border-box;height:88px;margin:6px 0;border:2.5px solid var(--frame);border-radius:12px;padding:6px 8px;background:#fffdf8;color:var(--ink);font-size:12px;line-height:1.4;resize:none;word-break:break-all}
+.codenote{min-height:20px;font-size:13px;font-weight:700;margin:2px 0 6px}
 .guide b{color:var(--red);font-family:var(--head);font-weight:900}
 .guide .gs{display:block;margin-top:4px;background:none;border:none;color:var(--muted);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer;padding:0}
 .joy{position:absolute;left:24px;bottom:24px;z-index:2;width:124px;height:124px;border-radius:50%;border:3px solid rgba(255,255,255,.8);background:rgba(255,255,255,.12);touch-action:none}
@@ -1729,6 +1731,7 @@ function endDay(){
   if(!S.ended)storyMorning(evM,dNew);
   if(dNew===0&&!S.ended)evM.unshift(`📋 週一早會：老蕭宣布這週目標是 ${fmt(rk().t)} 元，達標就升職！`);
   S.msg='早安！新的一天開始了，今天要去哪裡呢？';
+  if(S.day>=4&&!S.saveTip){S.saveTip=1;S.msg+=' 小提醒：換手機或清瀏覽紀錄進度會不見，選單裡的「存檔碼」可以先備份。'}
   endCall();resetAgent();render();
   if(S.dreamNow){startDream();return}
   if(S.ended){showEnding();return}
@@ -1818,6 +1821,53 @@ function intro(n){
     <button class="btn" data-a="${last?'close':'intro'}" data-k="${n+1}">${last?'出門賣房去！':'下一步'}</button>
     ${last?'':'<button class="btn alt" data-a="close">略過</button>'}`);
 }
+/* ===== 存檔碼 ===== */
+let codePending=null;
+const codeSum=t=>{let h=7;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))>>>0;return h.toString(36)};
+function makeCode(){const j=btoa(unescape(encodeURIComponent(JSON.stringify(S))));return 'FZ1.'+codeSum(j)+'.'+j}
+function parseCode(raw){
+  const t=String(raw||'').replace(/\s+/g,''),m=t.match(/FZ1\.([0-9a-z]+)\.([A-Za-z0-9+\/=]+)/);
+  if(!m||codeSum(m[2])!==m[1])return null;
+  try{const o=JSON.parse(decodeURIComponent(escape(atob(m[2]))));
+    if(!o||typeof o!=='object'||typeof o.day!=='number'||typeof o.money!=='number'||typeof o.time!=='number'||!Array.isArray(o.listings)||!Array.isArray(o.poles))return null;
+    return o}catch(e){return null}
+}
+function codeNote(t,bad){const n=$('#codeNote');if(n){n.textContent=t;n.style.color=bad?'var(--red)':'var(--ink)'}}
+function openCode(){
+  openM(`<h3>💾 存檔碼</h3>
+    <p class="small" style="text-align:left">遊戲的進度只存在這個瀏覽器裡。<b>換手機、換電腦、清掉瀏覽紀錄，進度就會不見。</b>想搬家，先複製下面這串存檔碼，到另一台裝置貼上就能接著玩。</p>
+    <p class="small" style="text-align:left;margin-top:8px"><b>① 備份：</b>複製這串字，貼到備忘錄或傳給自己</p>
+    <textarea class="codebox" id="codeOut" readonly></textarea>
+    <button class="btn" data-a="copycode">📋 複製存檔碼</button>
+    <p class="small" style="text-align:left;margin-top:8px"><b>② 讀取：</b>在新的裝置貼上存檔碼</p>
+    <textarea class="codebox" id="codeIn" placeholder="把存檔碼貼在這裡"></textarea>
+    <button class="btn alt" data-a="loadcode">📥 讀取存檔碼</button>
+    <div class="codenote" id="codeNote"></div>
+    <button class="btn alt" data-a="close">回到遊戲</button>`);
+  const o=$('#codeOut');if(o)o.value=makeCode();
+}
+function copyCode(){
+  const o=$('#codeOut');if(!o)return;const t=o.value;
+  const fb=()=>{try{o.focus();o.select();o.setSelectionRange(0,t.length);codeNote(document.execCommand('copy')?'已複製！去貼到備忘錄吧。':'沒辦法自動複製，請長按上面那串字，選「拷貝」。',false)}catch(e){codeNote('沒辦法自動複製，請長按上面那串字，選「拷貝」。',true)}};
+  try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>codeNote('已複製！去貼到備忘錄吧。',false),fb);return}}catch(e){}
+  fb();
+}
+function readCode(){
+  const i=$('#codeIn'),raw=i?i.value:'';
+  if(!raw.trim()){codeNote('請先把存檔碼貼在上面的框框裡。',true);return}
+  const o=parseCode(raw);
+  if(!o){codeNote('這串存檔碼讀不出來，可能少複製了一段，請重新複製一次。',true);return}
+  codePending=o;
+  openM(`<h3>要換成這份進度嗎？</h3><p class="small">存檔碼裡是第 ${o.day} 天、現金 ${fmt(o.money)} 元的進度。<br><b>目前這台裝置上的進度會被取代</b>，無法復原喔。</p>
+    <button class="btn" data-a="codego">確定換成這份</button><button class="btn alt" data-a="savecode">先不要</button>`);
+}
+function applyCode(){
+  if(!codePending)return;
+  const o=codePending;codePending=null;
+  try{localStorage.setItem(KEY,JSON.stringify(o))}catch(e){openM('<h3>讀取失敗</h3><p class="small">這個瀏覽器不讓遊戲存檔（可能開了無痕模式）。</p><button class="btn" data-a="close">好</button>');return}
+  openM('<h3>讀取完成！</h3><p class="small">遊戲會重新整理，馬上就回到那份進度。</p>');
+  setTimeout(()=>{try{location.reload()}catch(e){}},500);
+}
 function confirmReset(){
   openM(`<h3>要重新開始嗎？</h3><p class="small">目前的進度會全部清掉喔</p>
     <button class="btn" data-a="restart">重新開始</button><button class="btn alt" data-a="close">取消</button>`);
@@ -1842,7 +1892,7 @@ document.addEventListener('click',e=>{
     goto:()=>{const L=find(id);if(!L)return;const fromModal=modalOpen();if(fromModal)closeM();if(W.inside)leaveShop();if(W.view==='fp'){say('第一人稱模式要自己走過去喔，或在選單切回跟隨視角');return}
       if(!fromModal)$('#scene').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});goSpot(W.lotSpots[L.lot])},
     adyes:()=>{S.money-=1500;S.expo+=40;Object.keys(DIST).forEach(k=>addFame(k,3));closeM();say('刊登好了！更多人看到你了 📢')},
-    look:()=>setLook(k),lookdone:finishCreator,tutnext:tutNext,guideskip:()=>{S.gdDone=true;render()},loan:openLoan,shopsel:()=>openShopName(k),shopname:()=>buildShop(k),contin:()=>{S.ended=false;closeM();save();render()},sceneok:()=>{closeM();const a=W.sceneAfter;W.sceneAfter=null;if(a)a()},tutskip:()=>{if(W.tut&&W.tut.list)skipSeq();else endTutorial()},restyle:()=>{closeM();openCreator(false)},
+    look:()=>setLook(k),lookdone:finishCreator,tutnext:tutNext,guideskip:()=>{S.gdDone=true;render()},savecode:openCode,copycode:copyCode,loadcode:readCode,codego:applyCode,loan:openLoan,shopsel:()=>openShopName(k),shopname:()=>buildShop(k),contin:()=>{S.ended=false;closeM();save();render()},sceneok:()=>{closeM();const a=W.sceneAfter;W.sceneAfter=null;if(a)a()},tutskip:()=>{if(W.tut&&W.tut.list)skipSeq();else endTutorial()},restyle:()=>{closeM();openCreator(false)},
     buymoto:()=>{if(S.money<20000)return;S.money-=20000;S.scooter=true;closeM();gong();say('買了一台機車！之後在鎮上移動會快很多 🛵')},
     bankgo:()=>{closeM();perform('bank',{cid:+k})},buy:()=>{closeM();perform(k,{})},
     pspick:psPick,psgo:()=>{closeM();perform('presale',{cid:+k})},
@@ -2771,6 +2821,7 @@ function showMenu(){
     <button class="btn alt" data-a="fs">${fs2?'✕ 離開全螢幕':'⛶ 全螢幕'}</button>
     <button class="btn alt" data-a="restyle">👔 換造型</button>
     <button class="btn alt" data-a="help">📖 看店長教學</button>
+    <button class="btn alt" data-a="savecode">💾 存檔碼（換手機用）</button>
     <button class="btn alt" data-a="reset">🔄 重新開始</button>
     <button class="btn" data-a="close">回到遊戲</button>`);return}
   const v=S.view||'follow',fs=$('#game').classList.contains('fs');
@@ -2780,6 +2831,7 @@ function showMenu(){
     <button class="btn alt" data-a="fs">${fs?'✕ 離開全螢幕':'⛶ 全螢幕'}</button>
     <button class="btn alt" data-a="restyle">👔 換造型</button>
     <button class="btn alt" data-a="help">📖 看店長教學</button>
+    <button class="btn alt" data-a="savecode">💾 存檔碼（換手機用）</button>
     <button class="btn alt" data-a="reset">🔄 重新開始</button>
     <button class="btn" data-a="close">回到遊戲</button>`);
 }
