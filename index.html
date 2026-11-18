@@ -529,6 +529,60 @@ const RANKS=[
   {n:'🐔 店長',t:100000,st:15,cap:6,rq:75,say:'老蕭退休了，把幸福房屋交給你！'}
 ];
 const END_REQ=70;
+/* ===== 固定角色與小劇情：老蕭、對手阿傑、挑剔的陳媽媽、愛聊天的阿嬤 ===== */
+const SAY=(n,e,t)=>`@${n}|${e}|${t}`;
+const RIVAL_NAME='阿傑',RIVAL_CO='大信房屋';
+const LAO_LINES=[
+  ['菜鳥，電線桿多貼幾根，電話才會響。','房子賣不掉不要急，先把客人的需求問清楚。'],
+  ['簽專任約的時候，眼神要誠懇，字要寫漂亮。','正式房仲了，別忘了老實告知問題，口碑是你的命。'],
+  ['資深了，別家房仲會盯著你的案子，手腳要快。','客人信任你，比你嘴巴會講還重要。'],
+  ['金牌房仲的名聲，是一間一間老實賣出來的。','預售屋的代銷也在看你，別讓他們失望。'],
+  ['你現在是副店長了，菜鳥有問題要多帶一下。','我年紀大了，幸福房屋以後要靠你們。'],
+  ['店長不是賺最多的，是扛最多的。','開店的事，我看你準備得差不多了。']];
+function playScene(lines,after){
+  if(!W||!W.boss||W.noCine||!W.agent.position||typeof W.agent.position.set!=='function'){
+    W.sceneAfter=after||null;
+    openM(`<ul class="events">${lines.map(l=>`<li>${l.e} ${l.n}：「${l.t}」</li>`).join('')}</ul><button class="btn" data-a="sceneok">好</button>`);return}
+  const ap=W.agent.position;W.sceneSave={x:ap.x,z:ap.z,h:W.h};
+  const steps=lines.map((l,i)=>({seq:1,boss:!!l.boss,emo:l.e,txt:l.t,name:l.n,c:[5.6,1.6,-10.7],l:[4.6,1.1,-7.4],last:i===lines.length-1}));
+  W.tut={i:0,full:'',shown:0,list:steps,own:false,lastLabel:'好',scene:true,after};
+  W.creator=null;W.inside=false;W.path=[];W.pending=null;W.acting=null;
+  $('#shopui').hidden=true;$('#creator').hidden=true;$('#scene').classList.add('cine');$('#tut').hidden=false;$('#busy').hidden=true;
+  W.agent.visible=true;W.camSnap=true;goTut(0);
+}
+function amaScene(lot){
+  const T=S.story,ep=T.ama||0;
+  if(LOTS[lot].d!=='old'||ep>=3||S.day<3||T.amaDay===S.day||Math.random()>.22)return false;
+  const A=(t)=>({n:'老屋主阿嬤',e:'👵',t}),N=(t)=>({n:'旁白',e:'🍵',t});
+  if(ep===2&&!(freeLots().includes(lot)&&S.listings.length<cap()))return false;
+  T.amaDay=S.day;T.ama=ep+1;advanceTime(30);
+  if(ep===0){addFame('old',10);S.rep+=1;
+    playScene([A('哎呀～房仲少年仔！進來坐進來坐，喝杯茶啦！'),N('不知不覺，阿嬤從年輕時的老街聊到現在，一聊就是半小時。'),A('你這個人老實，阿嬤喜歡。我來跟鄰居說一聲，叫他們有事找你！')],()=>say('阿嬤留你喝茶聊天，老街的人都認識你了 🍵（時間 +30 分）'));return true}
+  if(ep===1){const bad=S.listings.filter(L=>L.flaws.some(x=>!(L.rev&&L.rev[x])));
+    if(bad.length){const L=pick(bad),x=pick(L.flaws.filter(f=>!(L.rev&&L.rev[f])));L.rumor=true;
+      playScene([A('少年仔，阿嬤跟你講一件事喔，你不要跟別人說。'),A((RUMOR[x]?RUMOR[x](L.name):`「${L.name}」好像有點問題`).replace(/^[^「]*：/,'').replace(/[「」]$/g,'')),N(`你默默記下來：「${L.name}」好像有問題，要查一查。`)],()=>say(`阿嬤偷偷告訴你「${L.name}」可能有問題，已標上「有傳聞」🗣️`))}
+    else{const c=newCustomer('old');c.until=S.day+4;S.customers.push(c);
+      playScene([A('我孫子最近想買房子，我叫他找你，你要好好招待他喔！')],()=>say(`阿嬤介紹了孫子${c.name}，想找${cWant(c)} 🙋`))}
+    return true}
+  playScene([A('少年仔，阿嬤老了，爬樓梯不方便，想把這間老房子賣掉，換個電梯大樓住。'),A('別人我不放心，就交給你。你一定會老老實實幫我賣，對不對？'),N('阿嬤把房子的鑰匙放到你手裡，眼神很信任。')],
+    ()=>{S.rep+=5;drawCard('阿嬤想把老房子交給你！',lot,pp=>{pp.excl=true;pp.good=true;pp.flaws=[];pp.quip=pick(['阿嬤把房子保養得很好，鄰居都說很溫馨。','牆壁剛粉刷過，陽光灑進來暖暖的。'])})});
+  return true}
+function storyMorning(evM,dNew){
+  const T=S.story,d=S.day;
+  if(dNew===0&&Math.random()<.7)evM.push(SAY('老蕭','👴',pick(LAO_LINES[Math.min(S.rank,5)])));
+  if(!T.rv&&d>=9){T.rv=1;T.rvDay=d;evM.push(SAY(RIVAL_NAME,'😏',`喔～你就是幸福房屋新來的？我是${RIVAL_CO}的${RIVAL_NAME}，這區的案子，十個有七個是我簽的。`),SAY('老蕭','👴','別理他，專心做好自己的事。'))}
+  else if(T.rv===1&&S.rank>=2&&d>=T.rvDay+7){T.rv=2;T.rvDay=d;
+    const rl=S.listings.filter(l=>!l.excl);
+    if(rl.length){const L=pick(rl);L.rival=Math.min(95,(L.rival||0)+25);evM.push(SAY(RIVAL_NAME,'😏',`「${L.name}」那間啊？我已經帶客人看過兩輪了，你還慢慢來喔～`),`⚠️ ${RIVAL_NAME}在搶你的「${L.name}」，對手進度提高了`)}
+    else evM.push(SAY(RIVAL_NAME,'😏','聽說你升資深了？沒關係，我的客人比你多。'))}
+  else if(T.rv===2&&S.rank>=4&&d>=T.rvDay+7){T.rv=3;S.rep+=3;evM.push(SAY(RIVAL_NAME,'🙂','…我承認，這陣子坪安鎮上，你的名字比我響亮。下次請你喝咖啡，不是要搶你案子啦。'),'⭐ 口碑上升')}
+  if(T.chen===1&&!S.customers.some(c=>c.vip==='chen')){T.chen=0;T.chenRe=d+5}
+  if(!T.chen&&d>=Math.max(8,T.chenRe||0)){T.chen=1;const c=newSchoolCustomer();c.vip='chen';c.name='陳媽媽';c.budget=Math.round(c.budget*.85/10)*10;c.until=d+7;S.customers.push(c);
+    evM.push(SAY('陳媽媽','👩','我要找學區的房子，採光要好、不能漏水、不能有奇怪的傳聞，價錢還要合理。你們房仲說的話，我都會去查喔！'),'🙋 客人名單多了「陳媽媽」：很挑剔，但滿意的話會幫你宣傳')}
+  if(T.chen===2&&d>=T.chenDay){T.chen=3;const c=newCustomer(fameDist());c.until=d+3;S.customers.push(c);S.rep+=2;
+    evM.push(SAY('陳媽媽','😊','房子住得很舒服！我在媽媽群組跟大家推薦你了，有人想看房，你快去接！'),`🙋 陳媽媽介紹了${c.name}（想找${cWant(c)}）`,'⭐ 口碑上升')}
+  if(T.chen===-1&&d>=T.chenDay){T.chen=-2;evM.push(SAY('陳媽媽','😤','你之前沒把房子的問題講清楚！我已經在媽媽群組提醒大家了喔。'))}
+}
 /* ===== 各區知名度（玩家看不到數字，只會從路人、電話、傳聞感覺到） ===== */
 const CORNER_D={0:'station',1:'school',2:'river',3:'school'},BANNER_D=['old','newtown'];
 const fameOf=d=>(S.fame&&S.fame[d])||0;
@@ -758,7 +812,9 @@ function showSeq(T,i){
   $('#tutTxt').textContent=reduced?T.txt:'';$('#tutDots').innerHTML='';
   $('#tutNext').textContent=T.last?W.tut.lastLabel:'下一步 ▶';
 }
-function dayModalHtml(dEnd,dNew,ev,evM,own){
+const evDisp=e=>{const m=e.match(/^@([^|]*)\|([^|]*)\|([\s\S]*)$/);return m?`${m[2]} ${m[1]}：「${m[3]}」`:e};
+function dayModalHtml(dEnd,dNew,ev0,evM0,own){
+  const ev=ev0.map(evDisp),evM=evM0.map(evDisp);
   return `<h3>🌙 第 ${S.day-1} 天（週${DNAME[dEnd]}）下班</h3><ul class="events">${ev.map(e=>`<li>${e}</li>`).join('')}</ul>
     ${evM.length?`<h3 style="font-size:18px;margin-top:12px">☀️ 第 ${S.day} 天（週${DNAME[dNew]}）早上</h3><ul class="events">${evM.map(e=>`<li>${e}</li>`).join('')}</ul>`:''}
     <button class="btn" data-a="${own?'owner':'close'}">${own?'看看是什麼物件':'出門賣房去！'}</button>`;
@@ -766,7 +822,9 @@ function dayModalHtml(dEnd,dNew,ev,evM,own){
 function startDayCine(dEnd,dNew,ev,evM,own){
   if(!W||!W.boss||W.noCine||!W.agent.position||typeof W.agent.position.set!=='function'){openM(dayModalHtml(dEnd,dNew,ev,evM,own));return}
   const nm1=`🌙 第 ${S.day-1} 天（週${DNAME[dEnd]}）下班`,nm2=`☀️ 第 ${S.day} 天（週${DNAME[dNew]}）早上`;
-  const mk=(e,night)=>{const m=e.match(/^((?:\p{Extended_Pictographic}|\uFE0F|\u200d)+)\s*([\s\S]*)$/u);
+  const mk=(e,night)=>{const q=e.match(/^@([^|]*)\|([^|]*)\|([\s\S]*)$/);
+    if(q)return{seq:1,boss:q[1]==='老蕭',emo:q[2],txt:q[3],name:q[1],sky:night?1260:450,c:night?[6.2,1.6,-10.7]:[3.4,1.6,-10.7],l:night?[4.6,1.1,-7.4]:[5,1.1,-7.4]};
+    const m=e.match(/^((?:\p{Extended_Pictographic}|\uFE0F|\u200d)+)\s*([\s\S]*)$/u);
     const emo=m?m[1]:(night?'🌙':'☀️'),txt=(m?m[2]:e).replace(/<br\s*\/?>/g,'\n').replace(/<[^>]+>/g,'').trim();
     const boss=/店長|老蕭/.test(txt);
     return{seq:1,boss,emo,txt,name:boss?'店長・老蕭':(night?'下班後':'早上'),sky:night?1260:450,c:night?[6.2,1.6,-10.7]:[3.4,1.6,-10.7],l:night?[4.6,1.1,-7.4]:[5,1.1,-7.4]}};
@@ -778,10 +836,11 @@ function startDayCine(dEnd,dNew,ev,evM,own){
   $('#shopui').hidden=true;$('#creator').hidden=true;$('#scene').classList.add('cine');$('#tut').hidden=false;$('#busy').hidden=true;
   W.agent.visible=true;W.camSnap=true;goTut(0);
 }
-function leaveSeq(){W.skyOv=null;setAva(null);$('#tut .tut-body b').textContent='店長・老蕭';$('#tut .tut-skip').textContent='略過教學';
-  $('#scene').classList.remove('tutjoy','tutkeys');W.tut=null;W.boss.visible=false;$('#tut').hidden=true;$('#fade').hidden=true;$('#fade').classList.remove('on');$('#scene').classList.remove('cine');resetAgent();W.camSnap=true;save();render()}
-function endSeq(){const own=W.tut&&W.tut.own;leaveSeq();if(own)drawCard('屋主主動上門！',W.ownerLot)}
-function skipSeq(){if(W.tut.lock)return;const h=W.tut.sum;leaveSeq();openM(h)}
+function leaveSeq(keep){const sv=W.sceneSave;W.skyOv=null;setAva(null);$('#tut .tut-body b').textContent='店長・老蕭';$('#tut .tut-skip').textContent='略過教學';
+  $('#scene').classList.remove('tutjoy','tutkeys');W.tut=null;W.boss.visible=false;$('#tut').hidden=true;$('#fade').hidden=true;$('#fade').classList.remove('on');$('#scene').classList.remove('cine');
+  if(keep&&sv){W.agent.position.set(sv.x,0,sv.z);W.h=sv.h;W.inside=false;W.camSnap=true;save();render()}else{W.sceneSave=null;resetAgent();W.camSnap=true;save();render()}}
+function endSeq(){const T=W.tut,own=T&&T.own;if(T&&T.scene){const a=T.after;leaveSeq(true);if(a)a();return}leaveSeq();if(own)drawCard('屋主主動上門！',W.ownerLot)}
+function skipSeq(){if(W.tut.lock)return;const T=W.tut;if(T.scene){const a=T.after;leaveSeq(true);if(a)a();return}const h=T.sum;leaveSeq();openM(h)}
 function endTutorial(){
   $('#scene').classList.remove('tutjoy','tutkeys');$('#knob').style.transform='';
   W.tut=null;S.tutDone=true;W.boss.visible=false;$('#tut').hidden=true;$('#scene').classList.remove('cine');
@@ -829,7 +888,7 @@ function psPick(){
       <span class="small">想找${cWant(c)}，預算 ${fmt(c.budget)} 萬${seen?'（已經參觀過這個建案）':''}</span><div class="tags">${f.tags}</div></button>`}).join('')}
     <button class="btn alt" data-a="close">先不要</button>`);
 }
-function fresh(){return{fame:{},rv:2,wd0:0,lowWeeks:0,ps:newPresale(),day:1,time:DAY_START,st:10,maxSt:10,money:5000,rep:50,expo:0,leads:0,listings:[],rank:0,week:0,total:0,deals:0,seq:1,ended:false,
+function fresh(){return{story:{},fame:{},rv:2,wd0:0,lowWeeks:0,ps:newPresale(),day:1,time:DAY_START,st:10,maxSt:10,money:5000,rep:50,expo:0,leads:0,listings:[],rank:0,week:0,total:0,deals:0,seq:1,ended:false,
   poles:POLES.map(()=>0),banners:[0,0],scouted:{},napDay:0,customers:[],cseq:1,
   msg:'早安！進公司了。按「出門跑業務」到街上，點地圖上的圖示我就會走過去做事。'}}
 function load(){try{const r=localStorage.getItem(KEY);return r?JSON.parse(r):null}catch(e){return null}}
@@ -1154,6 +1213,7 @@ function finishAct(){
     signFinish();return;
   }else if(k==='scout'){
     S.scouted[ctx.i]=S.day;
+    if(amaScene(ctx.i))return;
     if(Math.random()<homeRate()+S.rep/250+fameOf(LOTS[ctx.i].d)/500){S.msg='有屋主願意委託！來抽卡看看這間房子吧';render();drawCard('有屋主願意委託！',ctx.i);return}
     const hh=S.time/60;
     say(pick(isWeekend()?['屋主在家，拉著你聊了半小時，最後說：「沒有要賣啦！」','開門的是小朋友：「爸爸媽媽帶我出去玩，晚點再來！」','屋主說：「假日不要談生意啦！」']
@@ -1254,8 +1314,8 @@ function newListing(lot){
   return{id:S.seq++,lot,area,d:L0.d,type,school:L0.school,name:area+type,price:lotPrice(L0),good,flaws,rev:{},quip,chk:{},
     excl,rival:0,rivalName:pick(RIVALS)};
 }
-function drawCard(title,lot){
-  pending=newListing(lot);const p=pending;
+function drawCard(title,lot,mut){
+  pending=newListing(lot);if(mut)mut(pending);const p=pending;
   const front=`<div class="big">${p.good?'😊':'😐'}</div><div>${p.good?'好運卡':'看起來沒問題…？'}</div><div>${p.name}</div><div>${p.price} 萬</div>
     <div style="color:${p.excl?'var(--green)':'var(--muted)'}">${p.excl?'📜 專任約：只有你能賣':`📄 一般約：${p.rivalName}也在賣`}</div><small>${p.quip}</small>`;
   openM(`<h3>${title}</h3><p class="small">簽約前抽一張卡，看看這間房子怎麼樣</p>
@@ -1373,6 +1433,7 @@ function upd(){}
 function deal(L,r){
   const price=Math.round(V.ask*r),comm=Math.round(price*30*(L.excl?1.2:1)),kn=known(L),hd=hidden(L),gain=kn.length?8:2;
   S.money+=comm;S.week+=comm;S.total+=comm;S.deals++;S.rep+=gain;addFame(L.d,10);
+  const cu=S.customers.find(c=>c.id===V.cid);
   S.customers=S.customers.filter(c=>c.id!==V.cid);
   S.listings=S.listings.filter(x=>x.id!==L.id);
   const lines=[`🎉 成交！「${L.name}」賣了 ${price} 萬`,`💰 獎金 +${fmt(comm)} 元${L.excl?'（專任約多兩成）':`（搶在${L.rivalName}之前賣掉了！）`}`,`⭐ 口碑上升${kn.length?'（誠實告知問題，客人很感謝你）':''}`];
@@ -1381,6 +1442,9 @@ function deal(L,r){
       lines.push(`😱 過了幾天，買方發現這間有${hd.join('、')}的問題！<br>找上門要求賠償，獎金全部賠掉，⭐ 口碑大跌`)}
     else lines.push('😅 好險，買方暫時還沒發現房子的問題…');
   }else if(V.joke&&Math.random()<.25){S.rep-=8;lines.push('😒 買方住進去後，覺得你當初講話不老實，⭐ 口碑下降')}
+  if(cu&&cu.vip==='chen'){
+    if(!hd.length){S.story.chen=2;S.story.chenDay=S.day+2;S.rep+=4;addFame(L.d,12);lines.push('👩 陳媽媽滿意地說：「你講話很老實，我會幫你說好話。」⭐ 口碑上升')}
+    else{S.story.chen=-1;S.story.chenDay=S.day+2;S.rep-=6;lines.push('👩 陳媽媽之後發現房子有問題，她很不高興…⭐ 口碑下降')}}
   lines.unshift('🤝 斡旋成功！雙方都簽名了');
   gong();confetti();jump();endNego(lines.join('<br>'),true);
 }
@@ -1628,6 +1692,7 @@ function endDay(){
     S.week=0;
     if(S.ps){S.ps.boost=false;if(S.ps.units<=0){S.ps=newPresale();ev.push(`🏗️ 新建案「${S.ps.name}」開賣！代銷請大家幫忙帶客`)}}
   }
+  if(!S.ended)storyMorning(evM,dNew);
   if(dNew===0&&!S.ended)evM.unshift(`📋 週一早會：老蕭宣布這週目標是 ${fmt(rk().t)} 元，達標就升職！`);
   S.msg='早安！新的一天開始了，今天要去哪裡呢？';
   endCall();resetAgent();render();
@@ -1681,7 +1746,7 @@ document.addEventListener('click',e=>{
     goto:()=>{const L=find(id);if(!L)return;const fromModal=modalOpen();if(fromModal)closeM();if(W.inside)leaveShop();if(W.view==='fp'){say('第一人稱模式要自己走過去喔，或在選單切回跟隨視角');return}
       if(!fromModal)$('#scene').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});goSpot(W.lotSpots[L.lot])},
     adyes:()=>{S.money-=1500;S.expo+=40;Object.keys(DIST).forEach(k=>addFame(k,3));closeM();say('刊登好了！更多人看到你了 📢')},
-    look:()=>setLook(k),lookdone:finishCreator,tutnext:tutNext,tutskip:()=>{if(W.tut&&W.tut.list)skipSeq();else endTutorial()},restyle:()=>{closeM();openCreator(false)},
+    look:()=>setLook(k),lookdone:finishCreator,tutnext:tutNext,sceneok:()=>{closeM();const a=W.sceneAfter;W.sceneAfter=null;if(a)a()},tutskip:()=>{if(W.tut&&W.tut.list)skipSeq();else endTutorial()},restyle:()=>{closeM();openCreator(false)},
     buymoto:()=>{if(S.money<20000)return;S.money-=20000;S.scooter=true;closeM();gong();say('買了一台機車！之後在鎮上移動會快很多 🛵')},
     bankgo:()=>{closeM();perform('bank',{cid:+k})},buy:()=>{closeM();perform(k,{})},
     pspick:psPick,psgo:()=>{closeM();perform('presale',{cid:+k})},
@@ -2854,6 +2919,7 @@ if(S&&(S.poles===undefined||S.time===undefined))S=null;
 if(S)S.listings.forEach(L=>{if(!L.flaws){L.flaws=L.flaw?[L.flaw]:[];L.rev=L.revealed&&L.flaw?{[L.flaw]:true}:{}}});
 if(S&&!S.ps)S.ps=newPresale();
 if(S&&!S.fame)S.fame={};
+if(S&&!S.story)S.story={};
 if(S&&S.rv!==2){const mp={0:0,1:2,2:5};S.rank=mp[S.rank]!==undefined?mp[S.rank]:Math.min(S.rank,5);S.maxSt=RANKS[S.rank].st;S.rv=2;S.wd0=S.deals||0;S.lowWeeks=0;S.noLock=true}
 if(S&&!S.customers){S.customers=[];S.cseq=1;for(let i=0;i<(S.leads||0);i++)S.customers.push(newCustomer());
   S.listings.forEach(L=>{if(L.excl===undefined){L.excl=false;L.rival=0;L.rivalName=pick(RIVALS)}})}
