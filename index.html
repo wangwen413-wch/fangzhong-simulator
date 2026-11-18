@@ -523,16 +523,16 @@ const DAY_START=480,DAY_END=1260,MIN_PER_SEC=5;
 const RANKS=[
   {n:'🐣 菜鳥房仲',t:30000,st:10,cap:4,rq:0,say:''},
   {n:'🐥 正式房仲',t:40000,st:11,cap:4,rq:45,unl:'掛紅布條、舉牌、專任約',say:'老蕭：「簽下專任約的人，才算正式房仲！」'},
-  {n:'🐤 資深房仲',t:55000,st:12,cap:5,rq:50,unl:'查凶宅網、調資料、驗屋（店裡的電腦也能用）',say:'同事開始跟你搶客人，別家房仲也盯上你的物件了…'},
+  {n:'🐤 資深房仲',t:55000,st:12,cap:5,rq:50,unl:'打電話約工班驗屋（認識的工班，店裡就能約）',say:'同事開始跟你搶客人，別家房仲也盯上你的物件了…'},
   {n:'🏅 金牌房仲',t:70000,st:13,cap:5,rq:60,unl:'預售屋接待中心',say:'預售屋接待中心的代銷也點名要你幫忙！'},
   {n:'🎖️ 副店長',t:85000,st:14,cap:6,rq:70,say:'老蕭把一個新來的菜鳥交給你帶，你也變成別人的老蕭了。'},
   {n:'🐔 店長',t:100000,st:15,cap:6,rq:75,say:'老蕭退休了，把幸福房屋交給你！'}
 ];
 const END_REQ=70;
 /* 動作要升到哪個職位才能用（0＝一開始就能） */
-const UNL={banner:1,sign:1,ghostnet:2,docnet:2,inspbook:2,ghost:2,doc:2,inspect:2,pc:2,presale:3};
+const UNL={banner:1,sign:1,inspbook:2,presale:3};
 const isLocked=k=>!S.noLock&&UNL[k]!==undefined&&S.rank<UNL[k];
-const lockMsg=k=>`🔒 要升到「${RANKS[UNL[k]].n}」才能使用。老蕭：「先把基本功練好，業績和口碑夠了就會升職！」`;
+const lockMsg=k=>k==='inspbook'?`🔒 要升到「${RANKS[UNL[k]].n}」才有配合的工班，可以在店裡打電話約驗屋。現在想驗屋，要自己到物件那邊找師傅。`:`🔒 要升到「${RANKS[UNL[k]].n}」才能使用。老蕭：「先把基本功練好，業績和口碑夠了就會升職！」`;
 const rk=()=>RANKS[Math.min(S.rank,RANKS.length-1)];
 const cap=()=>rk().cap;
 const repFace=()=>S.rep>=65?'😊':S.rep>=40?'😐':'😟';
@@ -1120,15 +1120,14 @@ function checkResolve(id,k){
   if(fs.length){fs.forEach(f=>L.rev[f]=true);say(`查到了！這間有${fs.map(f=>FLAWS[f].e+f).join('、')}的問題。會誠實告訴客人，價格也跟著調降。`)}
   else say(`${CHECKS[k]}查過了，這方面沒問題 ✅`);
 }
-function pcTodo(){return S.listings.filter(l=>!l.chk.ghost).length+S.listings.filter(l=>!l.chk.doc).length+S.listings.filter(l=>!l.chk.inspect&&!l.insp).length}
+function pcTodo(){return S.listings.filter(l=>!l.chk.ghost).length+S.listings.filter(l=>!l.chk.doc).length+(isLocked('inspbook')?0:S.listings.filter(l=>!l.chk.inspect&&!l.insp).length)}
 function openPC(){
   if(W&&W.acting)return;
-  if(isLocked('pc')){say(lockMsg('pc'));return}
   const g=S.listings.filter(l=>!l.chk.ghost).length,d=S.listings.filter(l=>!l.chk.doc).length,ins=S.listings.filter(l=>!l.chk.inspect&&!l.insp),wait=S.listings.filter(l=>l.insp&&!l.chk.inspect);
   const late=S.time>=DAY_END-5;
   const b=(a,k,on,t,sub)=>`<button class="btn${on?'':' alt'}" data-a="${a}" data-k="${k}" ${on?'':'disabled'}>${t}<br><span style="font-size:13px">${sub}</span></button>`;
   const gw=!g?'都查過了':S.st<1?'體力不夠':S.money<g*100?'錢不夠':late?'已經下班了':'',dw=!d?'都調過了':S.st<1?'體力不夠':S.money<d*300?'錢不夠':late?'已經下班了':'';
-  const insB=ins.length?ins.map(L=>{const why=S.money<1500?'錢不夠':late?'已經下班了':'';return `<button class="btn alt" data-a="pcinsp" data-id="${L.id}" ${why?'disabled':''}>📞 約驗屋：${L.name}<br><span style="font-size:13px">${why||'1,500 元，不用體力，報告明天早上出來'}</span></button>`}).join(''):'<p class="small">沒有要約驗屋的物件</p>';
+  const insB=isLocked('inspbook')?`<p class="small">🔒 升到「${RANKS[UNL.inspbook].n}」才有配合的工班，可以在店裡打電話約驗屋。現在要驗屋，請到物件那邊自己找師傅。</p>`:ins.length?ins.map(L=>{const why=S.money<1500?'錢不夠':late?'已經下班了':'';return `<button class="btn alt" data-a="pcinsp" data-id="${L.id}" ${why?'disabled':''}>📞 約驗屋：${L.name}<br><span style="font-size:13px">${why||'1,500 元，不用體力，報告明天早上出來'}</span></button>`}).join(''):'<p class="small">沒有要約驗屋的物件</p>';
   openM(`<div class="big">💻</div><h3>辦公桌</h3><p class="small">在店裡就能查的資料，一次把手上的物件都查完。<br>驗屋要師傅到現場，打電話約好，報告明天早上出來；想馬上知道就自己帶師傅去。</p>
     ${b('pcdo','ghostnet',!gw,'👻 上網查凶宅網',gw||`體力 1，${g} 間共 ${fmt(g*100)} 元，30 分鐘`)}
     ${b('pcdo','docnet',!dw,'📑 線上調謄本資料',dw||`體力 1，${d} 間共 ${fmt(d*300)} 元，1 小時`)}
