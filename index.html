@@ -347,7 +347,7 @@ body{background:var(--bg);color:var(--ink)}
 .lgd summary{cursor:pointer;font-weight:700;padding:6px 0}
 .lgd .legend{padding:0;font-size:13px}
 @media (min-width:900px){html.nlb .main{height:calc(100vh - 92px - 52px)}html.nlb .wrap{padding-bottom:62px}}
-@media (max-width:899px){
+@media (max-width:899px),(orientation:landscape) and (max-height:520px) and (pointer:coarse){
   .mob-only{display:grid}
   .wrap{padding:6px 6px max(6px,env(safe-area-inset-bottom,0px))}
   .banner{display:none}
@@ -377,6 +377,37 @@ body{background:var(--bg);color:var(--ink)}
   .mfloat{left:110px;top:48px;font-size:13px}
   .busy{width:190px;font-size:14px}
 }
+
+/* ===== 手機橫放 ===== */
+@media (orientation:landscape) and (max-height:520px) and (pointer:coarse){
+  .wrap{max-width:none;padding:max(4px,env(safe-area-inset-top,0px)) max(6px,env(safe-area-inset-right,0px)) max(4px,env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))}
+  html.nlb .wrap{padding-bottom:calc(58px + env(safe-area-inset-bottom,0px))}
+  .main,html.nlb .main{height:auto;min-height:0}
+  .scene{min-height:0;height:calc(100vh - 8px);height:calc(100dvh - 8px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+  html.nlb .scene{min-height:0;height:calc(100vh - 70px);height:calc(100dvh - 70px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+  .callbar{top:56px;bottom:auto}
+  .joy{left:max(16px,env(safe-area-inset-left,0px));bottom:14px;width:112px;height:112px}
+  .br{right:max(12px,env(safe-area-inset-right,0px));bottom:14px}
+  .shopui{grid-template-columns:repeat(4,1fr)}
+  .shopui button small{display:none}
+  .tut{left:132px;right:132px;max-width:none;margin:0;bottom:8px;padding:8px 12px}
+  .tut-ava{width:44px;height:44px}
+  .tut-body p{font-size:13.5px;min-height:2.6em;margin:2px 0 6px;line-height:1.55}
+  .creator{left:132px;right:132px;max-width:none;margin:0;bottom:8px;max-height:calc(100% - 16px)}
+  .signui{top:8px}
+  .modal{padding:6px}
+  .box{max-width:520px;max-height:calc(100vh - 12px);max-height:calc(100dvh - 12px);padding:12px 18px}
+  .box h3{font-size:19px}
+  .box .big{font-size:34px;line-height:1.1}
+}
+.rot{display:none;position:fixed;inset:0;z-index:70;background:var(--bg);color:var(--ink);flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px}
+.rot .ph{font-size:64px;line-height:1;animation:rotph 2.4s ease-in-out infinite}
+@keyframes rotph{0%,25%{transform:rotate(0)}65%,100%{transform:rotate(-90deg)}}
+.rot b{font-size:22px;font-weight:700}
+.rot p{margin:0;font-size:14px;color:var(--muted);line-height:1.6}
+.rot button{border:none;border-radius:99px;padding:10px 22px;background:var(--red);color:var(--yellow);font-size:15px;box-shadow:0 4px 0 var(--red-edge);margin-top:6px}
+@media (orientation:portrait) and (max-width:700px) and (pointer:coarse){html:not(.nopt) .rot{display:flex}}
+@media (prefers-reduced-motion: reduce){.rot .ph{animation:none}}
 </style>
 </head>
 <body>
@@ -389,6 +420,7 @@ body{background:var(--bg);color:var(--ink)}
 <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
 <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 3h4l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></symbol>
 </defs></svg>
+<div class="rot" id="rot" role="alert"><div class="ph" aria-hidden="true">📱</div><b>請把手機轉橫來玩</b><p>橫放的畫面比較大，搖桿和按鈕也比較好按。<br>如果轉了沒反應，請先關掉手機的「直向鎖定」。</p><button id="rotGo" type="button">先用直向玩</button></div>
 <div class="wrap" id="game">
   <header class="banner"><h1>房仲模擬器</h1></header>
   <div class="main">
@@ -478,6 +510,7 @@ body{background:var(--bg);color:var(--ink)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 if(/netlify\.app$/i.test(location.hostname))document.documentElement.classList.add('nlb');
+document.getElementById('rotGo').addEventListener('click',()=>document.documentElement.classList.add('nopt'));
 const $=s=>document.querySelector(s);
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
