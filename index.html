@@ -719,6 +719,11 @@ function newCustomer(){
   const budget=Math.round(BASE[type]*DIST[d].m*(school?1.12:1)*rnd(.85,1.2)/10)*10;
   return{id:S.cseq++,name:pick(CNAMES),area:DIST[d].n,d,type,school,budget,until:S.day+3};
 }
+function newSchoolCustomer(){
+  const opts=LOTS.filter(l=>l.d==='school').map(l=>l.type),type=opts.length?pick(opts):'電梯大樓';
+  const budget=Math.round(BASE[type]*DIST.school.m*1.12*rnd(.95,1.2)/10)*10;
+  return{id:S.cseq++,name:pick(CNAMES),area:DIST.school.n,d:'school',type,school:true,budget,until:S.day+3};
+}
 const SEGS=[
   {n:'捷運站口',who:'上班族',e:'💼',base:.9,peaks:[[7,9.5],[17,19.5]],tip:'早上 7～9 點、傍晚 5～7 點的通勤人潮最多',
     types:['小套房','電梯大樓','兩房新成屋'],ds:['station','station','newtown'],sc:0,bm:[.9,1.15],cols:[0x2f3e6b,0x4a4f58,0x3a3f4b,0x5a4a6a],sp:2},
@@ -731,12 +736,21 @@ const SEGS=[
   {n:'老街路口',who:'年輕人',e:'🎧',base:.7,peaks:[[18,20.5]],tip:'人潮比較平均，晚上下班後也還有人',night:.8,
     types:['老公寓','小套房','老公寓'],ds:['old','river','old'],sc:0,bm:[.8,1.05],cols:[0xe86a5a,0x5a8ae8,0xf2c46d,0x6ac4a0],sp:1.7}
 ];
+SEGS[0].wkPeaks=[[10,12],[16,18.5]];SEGS[0].wkm=.8;SEGS[0].tipW='假日通勤的人少，只有 10～12 點、傍晚 4～6 點有出遊的人';
+SEGS[2].wkPeaks=[[8,11.5],[14,17.5]];SEGS[2].wkm=1.25;SEGS[2].tipW='假日全家出來散步，早上 8～11 點、下午 2～5 點最多人';
+SEGS[3].wkPeaks=[[9,12],[14,18.5]];SEGS[3].wkm=1.2;SEGS[3].tipW='假日全家一起來採買，上午和下午人都很多';
+SEGS[4].wkPeaks=[[13,21]];SEGS[4].wkm=1.1;SEGS[4].tipW='假日逛老街的年輕人，下午到晚上都有';
+const isWeekend=()=>(S.day-1)%7>=5;
+const DNAME='一二三四五六日';
 function crowdOf(i,min){
   const G=SEGS[i],h=(min===undefined?S.time:min)/60,wk=(S.day-1)%7>=5;
-  let m=G.peaks.some(([a,b])=>h>=a&&h<b)?1.6:1;
+  const pk=(wk&&G.wkPeaks)||G.peaks;
+  let m=pk.some(([a,b])=>h>=a&&h<b)?1.6:1;
+  if(wk&&G.wkm)m*=G.wkm;
   if(h>=19.5&&!G.night)m=.4;else if(h>=19.5)m*=G.night;
   if(G.weekend&&wk)m=G.weekend;
-  return{m,label:m>=1.5?'尖峰時段 🔥':m<.6?'人很少':'人潮普通'};
+  const storm=S.stormDay===S.day;if(storm)m*=.35;
+  return{m,label:storm?'颱風天，街上沒人 🌀':m>=1.5?'尖峰時段 🔥':m<.6?'人很少':'人潮普通'};
 }
 function newSegCustomer(i){
   const G=SEGS[i],k=Math.floor(Math.random()*G.types.length),type=G.types[k],d=G.ds[Math.floor(Math.random()*G.ds.length)];
@@ -752,6 +766,10 @@ function startSignFP(ctx){
   else if(r<.15){n=Math.max(0,n-1);S.st=Math.max(0,S.st-1);ev.push('🌧️ 突然下大雨，淋成落湯雞，體力 -1')}
   else if(r<.23){S.st=Math.min(S.maxSt,S.st+1);ev.push('🧋 好心路人請你喝飲料，體力 +1')}
   else if(r<.29){S.expo+=40;ev.push('📸 被路人拍照 PO 上網，意外爆紅！曝光 +40')}
+  if(!ev.length&&Math.random()<.2){
+    if(isWeekend()){n=Math.min(3,n+1);ev.push('👨‍👩‍👧 假日全家出遊，一家人停下來跟你聊了好久')}
+    else if(cr.m>=1.5){n=Math.max(0,n-1);ev.push('⏰ 上班族都在趕時間，沒什麼人願意停下來')}
+  }
   const fl=freeLots(),owner=i===2&&fl.length&&S.listings.length<cap()&&Math.random()<.35;
   const cs=[];for(let k=0;k<n;k++)cs.push(newSegCustomer(i));
   const expo=Math.round(10+15*cr.m);
@@ -793,7 +811,7 @@ function signFinish(){
   S.msg=F.cs.length?`舉牌結束，多了 ${F.cs.length} 位客人！`:'舉牌結束了。';
   W.ownerLot=F.owner;
   openM(`<h3>🪧 ${G.n}舉牌結束</h3><p class="small">${hm(t0)}～${hm(t1)}・${F.label}・主要客群：${G.who}</p>
-    ${none?`<p>這段時間停下來的人不多，沒有遇到客人…</p><p class="small">💡 小提醒：${G.n}${G.tip}</p>`:''}
+    ${none?`<p>這段時間停下來的人不多，沒有遇到客人…</p><p class="small">💡 小提醒：${G.n}${(isWeekend()&&G.tipW)||G.tip}</p>`:''}
     <ul class="events">${rows.join('')}</ul>
     ${F.owner>=0?'<button class="btn" data-a="signowner">去看看阿伯的房子</button>':'<button class="btn" data-a="close">好</button>'}`);
   render();
@@ -1009,8 +1027,12 @@ function finishAct(){
     signFinish();return;
   }else if(k==='scout'){
     S.scouted[ctx.i]=S.day;
-    if(Math.random()<.32+S.rep/250){S.msg='有屋主願意委託！來抽卡看看這間房子吧';render();drawCard('有屋主願意委託！',ctx.i);return}
-    say(pick(['屋主說：「沒有要賣啦！」','按了好久電鈴，沒人在家…','開門的是推銷員，被反推銷了 😅']));
+    if(Math.random()<homeRate()+S.rep/250){S.msg='有屋主願意委託！來抽卡看看這間房子吧';render();drawCard('有屋主願意委託！',ctx.i);return}
+    const hh=S.time/60;
+    say(pick(isWeekend()?['屋主在家，拉著你聊了半小時，最後說：「沒有要賣啦！」','開門的是小朋友：「爸爸媽媽帶我出去玩，晚點再來！」','屋主說：「假日不要談生意啦！」']
+      :S.stormDay===S.day?['屋主說：「颱風天你還出來喔？先進來喝茶…不過我沒有要賣啦。」','屋主在家看新聞，沒心情談房子…']
+      :hh<17.5?['按了好久電鈴，屋主都去上班了…','鄰居探頭出來：「他們白天都不在啦！」','開門的是推銷員，被反推銷了 😅']
+      :['屋主說：「沒有要賣啦！」','屋主正在煮晚餐，請你改天再來','開門的是推銷員，被反推銷了 😅']));
   }else if(k==='shop'){
     if(Math.random()<.35+S.expo/120){startCall(Math.random()<.7?'cust':null);say('電話響了！快接起來 📞')}
     else say(pick(['等了一小時，只接到詐騙電話…','店裡好安靜，只聽到冷氣的聲音。']));
@@ -1023,6 +1045,7 @@ function finishAct(){
   else checkResolve(ctx.id,k);
   render();
 }
+function homeRate(){const h=S.time/60;let r=isWeekend()?.46:(h<17.5?.2:.38);if(S.stormDay===S.day)r+=.15;return r}
 const freeLots=()=>{const u=S.listings.map(l=>l.lot);return LOTS.map((_,i)=>i).filter(i=>!u.includes(i))};
 function signEvent(){
   const r=Math.random(),fl=freeLots();
@@ -1412,26 +1435,43 @@ function endDay(){
   else if(nr<.5)ev.push('🌙 平安無事，好好睡了一覺');
   if(!ev.length)ev.push('😌 今天晚上很平靜');
   S.expo*=.7;S.day++;S.st=Math.max(1,S.maxSt+stB);S.time=DAY_START;
+  const dEnd=(S.day-2)%7,dNew=(S.day-1)%7;
+  if(dEnd===4)ev.push(`📊 週五結算：這週目前賺了 ${fmt(S.week)} 元，目標 ${fmt(RANKS[Math.min(S.rank,2)].t)} 元。週末還有兩天！`);
+  if(Math.random()<.3){
+    if(dEnd<5){const c=newCustomer();S.customers.push(c);ev.push(`💼 下班後 ${c.name} 傳訊息來，想找${cWant(c)}。白天要上班，晚上才有空看屋`)}
+    else{const rl=S.listings.filter(l=>!l.excl);if(rl.length){const L=pick(rl);L.rival=Math.min(95,(L.rival||0)+15);ev.push(`🆚 假日${L.rivalName}也出來積極帶看，「${L.name}」的競爭壓力變大了`)}}
+  }
   const evM=[];let mOwner=false;const mr=Math.random();
   if(mr<.12){const c=newCustomer();S.customers.push(c);evM.push(`🚪 一開門，${c.name}已經在門口等了！想找${cWant(c)}`)}
   else if(mr<.2&&!owner&&free.length&&S.listings.length<cap()){mOwner=true;evM.push('📮 屋主拿著權狀走進店裡，想委託給你！')}
   else if(mr<.32){S.st+=2;evM.push('☕ 店長請大家喝咖啡，體力 +2')}
   else if(mr<.42)evM.push('📋 早會被店長點名：「業績呢？」（壓力山大）');
   else if(mr<.5){S.time=540;evM.push('😴 鬧鐘沒響，9 點才進公司…')}
+  if(dNew<5){
+    const wr=Math.random();
+    if(wr<.1){S.stormDay=S.day;evM.push('🌀 颱風假！街上幾乎沒人，不過屋主都待在家，今天按電鈴比較容易成功')}
+    else if(wr<.28){const c=newSchoolCustomer();S.customers.push(c);evM.push(`🎒 一位家長來電：「${c.name}想幫孩子找${cWant(c)}」`)}
+  }else{
+    const wr=Math.random();
+    if(wr<.25){const c=newCustomer();c.budget=Math.round(c.budget*1.1/10)*10;S.customers.push(c);evM.push(`👨‍👩‍👧 假日一早，${c.name}一家人已經在門口等著看屋，想找${cWant(c)}`)}
+    else if(wr<.42){S.time=Math.max(S.time,DAY_START+30);evM.push('🚗 假日塞車，晚了半小時才到公司')}
+  }
   S.banners=S.banners.map(b=>Math.max(0,b-1));
   if((S.day-1)%7===0){
+    ev.push('📅 週日晚上，老蕭幫你打這週的成績…');
     const R=RANKS[S.rank];
     if(S.week>=R.t){S.rank++;if(S.rank>=3)S.ended=true;else{const N=RANKS[S.rank];S.maxSt=N.st;S.st=N.st;ev.push(`🎊 本週業績達標！升職成「${N.n}」<br>💪 體力上限變成 ${N.st}，🏠 可以同時負責 ${N.cap} 間物件`)}}
     else ev.push(`📉 本週業績沒達標（${fmt(S.week)} / ${fmt(R.t)} 元）<br>店長：「下週加油！」`);
     S.week=0;
     if(S.ps){S.ps.boost=false;if(S.ps.units<=0){S.ps=newPresale();ev.push(`🏗️ 新建案「${S.ps.name}」開賣！代銷請大家幫忙帶客`)}}
   }
+  if(dNew===0&&!S.ended)evM.unshift(`📋 週一早會：老蕭宣布這週目標是 ${fmt(RANKS[Math.min(S.rank,2)].t)} 元，達標就升職！`);
   S.msg='早安！新的一天開始了，今天要去哪裡呢？';
   endCall();resetAgent();render();
   if(S.ended){showEnding();return}
   const own=owner||mOwner;W.ownerLot=owner?ownerLot:(mOwner?pick(free):-1);
-  openM(`<h3>🌙 第 ${S.day-1} 天下班</h3><ul class="events">${ev.map(e=>`<li>${e}</li>`).join('')}</ul>
-    ${evM.length?`<h3 style="font-size:18px;margin-top:12px">☀️ 第 ${S.day} 天早上</h3><ul class="events">${evM.map(e=>`<li>${e}</li>`).join('')}</ul>`:''}
+  openM(`<h3>🌙 第 ${S.day-1} 天（週${DNAME[dEnd]}）下班</h3><ul class="events">${ev.map(e=>`<li>${e}</li>`).join('')}</ul>
+    ${evM.length?`<h3 style="font-size:18px;margin-top:12px">☀️ 第 ${S.day} 天（週${DNAME[dNew]}）早上</h3><ul class="events">${evM.map(e=>`<li>${e}</li>`).join('')}</ul>`:''}
     <button class="btn" data-a="${own?'owner':'close'}">${own?'看看是什麼物件':'出門賣房去！'}</button>`);
 }
 function showEnding(){
