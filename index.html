@@ -142,7 +142,8 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .tut-ava svg{width:100%;height:100%;display:block}
 .tut-body{flex:1;min-width:0}
 .tut-body b{font-family:var(--head);font-weight:900;font-size:15px;color:var(--red)}
-.tut-body p{margin:4px 0 8px;font-size:15px;line-height:1.65;min-height:3.3em}
+.tut-body p{margin:4px 0 8px;font-size:15px;line-height:1.65;min-height:3.3em;white-space:pre-line}
+.tut-ava.emo{display:grid;place-items:center;font-size:32px;line-height:1}
 .tut-btns{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .tut-dots{display:flex;gap:4px}.tut-dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}.tut-dots i.on{background:var(--caramel);width:16px;border-radius:3px}
 .tut-btns button{border:none;font:inherit;cursor:pointer;white-space:nowrap}
@@ -688,9 +689,12 @@ function startTutorial(){
   W.cam.fov=40;W.cam.updateProjectionMatrix();W.camSnap=true;
   showTut(0);
 }
+const tl=()=>(W.tut&&W.tut.list)||TUT;
 const isTouch=()=>!(window.matchMedia&&matchMedia('(hover:hover) and (pointer:fine)').matches);
 function showTut(i){
-  const T=TUT[i];W.tut.i=i;
+  const T=tl()[i];W.tut.i=i;
+  if(T.seq){showSeq(T,i);return}
+  setAva(null);$('#tut .tut-body b').textContent='店長・老蕭';$('#tut .tut-skip').textContent='略過教學';W.skyOv=null;W.boss.visible=true;
   const txt=T.ctl?(isTouch()?'先教你怎麼走路：搖桿（平常在左下角）往哪推，就往哪走；手指在畫面上左右滑，可以轉視角。點地圖上的標籤，你也會自己走過去。走到東西旁邊，右下角就會出現可以做的事。'
     :'先教你怎麼走路：用鍵盤的 W A S D 或方向鍵走路；滑鼠在畫面上左右拖曳可以轉視角，滾輪可以拉近拉遠。點地圖上的標籤，你也會自己走過去。走到東西旁邊，右下角就會出現可以做的事。'):T.t;
   W.tut.full=txt.replace('{n}',S.name||'菜鳥');
@@ -703,9 +707,49 @@ function showTut(i){
 }
 function tutNext(){
   const T=W.tut;if(!T)return;
+  if(T.lock)return;
   if(T.shown<T.full.length){T.shown=T.full.length;$('#tutTxt').textContent=T.full;return}
-  if(T.i<TUT.length-1)showTut(T.i+1);else endTutorial();
+  if(T.lock)return;
+  if(T.i<tl().length-1)goTut(T.i+1);else if(T.list)endSeq();else endTutorial();
 }
+/* ===== 上下班動畫：沿用教學的對話框，一則一則演出 ===== */
+function setAva(emo){const a=$('#tut .tut-ava');if(!W.avaHTML)W.avaHTML=a.innerHTML;if(emo){a.classList.add('emo');a.textContent=emo}else if(a.classList.contains('emo')){a.classList.remove('emo');a.innerHTML=W.avaHTML}}
+function flashCard(txt,mid){const f=$('#fade'),T=W.tut;if(T)T.lock=true;$('#fadeTxt').textContent=txt;f.hidden=false;requestAnimationFrame(()=>f.classList.add('on'));
+  setTimeout(()=>{mid();f.classList.remove('on');setTimeout(()=>{f.hidden=true;if(W.tut)W.tut.lock=false},400)},reduced?500:1100)}
+function goTut(i){const T=tl()[i];if(T&&T.card&&!T.cardDone){T.cardDone=true;flashCard(T.card,()=>showTut(i));return}showTut(i)}
+function showSeq(T,i){
+  W.tut.full=T.txt;W.tut.shown=reduced?T.txt.length:0;W.skyOv=T.sky;
+  $('#scene').classList.remove('tutjoy','tutkeys');
+  $('#tut .tut-body b').textContent=T.name;$('#tut .tut-skip').textContent='看文字摘要';
+  setAva(T.boss?null:T.emo);
+  W.agent.position.set(4.2,0,-7.5);W.h=Math.PI-.5;W.boss.visible=!!T.boss;W.boss.position.set(5.6,0,-7.5);W.boss.rotation.y=Math.PI+.5;
+  $('#tutTxt').textContent=reduced?T.txt:'';$('#tutDots').innerHTML='';
+  $('#tutNext').textContent=T.last?W.tut.lastLabel:'下一步 ▶';
+}
+function dayModalHtml(dEnd,dNew,ev,evM,own){
+  return `<h3>🌙 第 ${S.day-1} 天（週${DNAME[dEnd]}）下班</h3><ul class="events">${ev.map(e=>`<li>${e}</li>`).join('')}</ul>
+    ${evM.length?`<h3 style="font-size:18px;margin-top:12px">☀️ 第 ${S.day} 天（週${DNAME[dNew]}）早上</h3><ul class="events">${evM.map(e=>`<li>${e}</li>`).join('')}</ul>`:''}
+    <button class="btn" data-a="${own?'owner':'close'}">${own?'看看是什麼物件':'出門賣房去！'}</button>`;
+}
+function startDayCine(dEnd,dNew,ev,evM,own){
+  if(!W||!W.boss||W.noCine||!W.agent.position||typeof W.agent.position.set!=='function'){openM(dayModalHtml(dEnd,dNew,ev,evM,own));return}
+  const nm1=`🌙 第 ${S.day-1} 天（週${DNAME[dEnd]}）下班`,nm2=`☀️ 第 ${S.day} 天（週${DNAME[dNew]}）早上`;
+  const mk=(e,night)=>{const m=e.match(/^((?:\p{Extended_Pictographic}|\uFE0F|\u200d)+)\s*([\s\S]*)$/u);
+    const emo=m?m[1]:(night?'🌙':'☀️'),txt=(m?m[2]:e).replace(/<br\s*\/?>/g,'\n').replace(/<[^>]+>/g,'').trim();
+    const boss=/店長|老蕭/.test(txt);
+    return{seq:1,boss,emo,txt,name:boss?'店長・老蕭':(night?'下班後':'早上'),sky:night?1260:450,c:night?[6.2,1.6,-10.7]:[3.4,1.6,-10.7],l:night?[4.6,1.1,-7.4]:[5,1.1,-7.4]}};
+  const steps=[...ev.map(e=>mk(e,true)),...(evM.length?evM:['☀️ 新的一天開始了，今天要去哪裡呢？']).map(e=>mk(e,false))];
+  if(!steps.some(x=>x.sky===1260))steps.unshift(mk('🌙 辛苦了，下班囉。',true));
+  const mi=steps.findIndex(x=>x.sky===450);steps[0].card=nm1;steps[mi].card=nm2;steps[steps.length-1].last=true;
+  W.tut={i:0,full:'',shown:0,list:steps,own,lastLabel:own?'看看是什麼物件':'出門賣房去！',sum:dayModalHtml(dEnd,dNew,ev,evM,own)};
+  W.creator=null;W.inside=false;W.path=[];W.pending=null;W.acting=null;
+  $('#shopui').hidden=true;$('#creator').hidden=true;$('#scene').classList.add('cine');$('#tut').hidden=false;$('#busy').hidden=true;
+  W.agent.visible=true;W.camSnap=true;goTut(0);
+}
+function leaveSeq(){W.skyOv=null;setAva(null);$('#tut .tut-body b').textContent='店長・老蕭';$('#tut .tut-skip').textContent='略過教學';
+  $('#scene').classList.remove('tutjoy','tutkeys');W.tut=null;W.boss.visible=false;$('#tut').hidden=true;$('#fade').hidden=true;$('#fade').classList.remove('on');$('#scene').classList.remove('cine');resetAgent();W.camSnap=true;save();render()}
+function endSeq(){const own=W.tut&&W.tut.own;leaveSeq();if(own)drawCard('屋主主動上門！',W.ownerLot)}
+function skipSeq(){if(W.tut.lock)return;const h=W.tut.sum;leaveSeq();openM(h)}
 function endTutorial(){
   $('#scene').classList.remove('tutjoy','tutkeys');$('#knob').style.transform='';
   W.tut=null;S.tutDone=true;W.boss.visible=false;$('#tut').hidden=true;$('#scene').classList.remove('cine');
@@ -1554,9 +1598,7 @@ function endDay(){
   endCall();resetAgent();render();
   if(S.ended){showEnding();return}
   const own=owner||mOwner;W.ownerLot=owner?ownerLot:(mOwner?pick(free):-1);
-  openM(`<h3>🌙 第 ${S.day-1} 天（週${DNAME[dEnd]}）下班</h3><ul class="events">${ev.map(e=>`<li>${e}</li>`).join('')}</ul>
-    ${evM.length?`<h3 style="font-size:18px;margin-top:12px">☀️ 第 ${S.day} 天（週${DNAME[dNew]}）早上</h3><ul class="events">${evM.map(e=>`<li>${e}</li>`).join('')}</ul>`:''}
-    <button class="btn" data-a="${own?'owner':'close'}">${own?'看看是什麼物件':'出門賣房去！'}</button>`);
+  startDayCine(dEnd,dNew,ev,evM,own);
 }
 function showEnding(){
   gong();confetti();
@@ -1604,7 +1646,7 @@ document.addEventListener('click',e=>{
     goto:()=>{const L=find(id);if(!L)return;const fromModal=modalOpen();if(fromModal)closeM();if(W.inside)leaveShop();if(W.view==='fp'){say('第一人稱模式要自己走過去喔，或在選單切回跟隨視角');return}
       if(!fromModal)$('#scene').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});goSpot(W.lotSpots[L.lot])},
     adyes:()=>{S.money-=1500;S.expo+=40;closeM();say('刊登好了！曝光 +40 📢')},
-    look:()=>setLook(k),lookdone:finishCreator,tutnext:tutNext,tutskip:endTutorial,restyle:()=>{closeM();openCreator(false)},
+    look:()=>setLook(k),lookdone:finishCreator,tutnext:tutNext,tutskip:()=>{if(W.tut&&W.tut.list)skipSeq();else endTutorial()},restyle:()=>{closeM();openCreator(false)},
     buymoto:()=>{if(S.money<20000)return;S.money-=20000;S.scooter=true;closeM();gong();say('買了一台機車！之後在鎮上移動會快很多 🛵')},
     bankgo:()=>{closeM();perform('bank',{cid:+k})},buy:()=>{closeM();perform(k,{})},
     pspick:psPick,psgo:()=>{closeM();perform('presale',{cid:+k})},
@@ -2630,7 +2672,7 @@ function tick(dt,t){
   ag.rotation.y=W.h;
   {const bl=(t%3.6)<.12?.15:1;[ag,...W.leads,...W.peds.map(q=>q.g)].forEach(g=>{const E=g.userData.eyes;if(E)E.forEach(e=>{e.scale.y=bl})})}
   if(W.jumpT>0)W.jumpT=Math.max(0,W.jumpT-dt*2.2);
-  const walking=moving||!!(W.tut&&TUT[W.tut.i].ctl&&!reduced);
+  const walking=moving||!!(W.tut&&tl()[W.tut.i].ctl&&!reduced);
   const swing=(g,on,ph)=>{const L=g.userData.limbs;if(!L)return;const a=on&&!reduced?Math.sin(ph):0;
     L.lf.position.z=a*.14;L.rf.position.z=-a*.14;L.la.position.z=-a*.12;L.ra.position.z=a*.12;L.lf.position.y=.1+Math.max(0,a)*.05;L.rf.position.y=.1+Math.max(0,-a)*.05};
   swing(ag,walking&&!W.ride.visible,t*12);
@@ -2666,7 +2708,7 @@ function tick(dt,t){
     }else{W.rivalWait-=dt;rp.y=0;
       if(W.rivalWait<=0){const L=pick(gen);W.rivalPath=pathTo(W.lotSpots[L.lot].app.clone().add(new THREE.Vector3(.6,0,0)),rp)}}
   }
-  applyTime(S.time);
+  applyTime(W.skyOv!=null?W.skyOv:S.time);
   // 鏡頭
   const cam=W.cam;
   W.ride.visible=!!S.scooter&&!W.inside&&!W.creator&&!W.tut;
@@ -2692,7 +2734,7 @@ function tick(dt,t){
   }else if(W.creator||W.tut){
     W.agent.visible=true;
     if(W.creator){if(!reduced)W.h+=dt*.5;const nar=cam.aspect<1;cam.position.set(4.8,.85,nar?-13.1:-12.35);cam.lookAt(4.8,nar?-.44:-.1,-7)}
-    else{const T=TUT[W.tut.i],k=reduced||W.camSnap?1:Math.min(1,dt*2.2);W.camSnap=false;
+    else{const T=tl()[W.tut.i],k=reduced||W.camSnap?1:Math.min(1,dt*2.2);W.camSnap=false;
       cam.position.x+=(T.c[0]-cam.position.x)*k;cam.position.y+=(T.c[1]-cam.position.y)*k;cam.position.z+=(T.c[2]-cam.position.z)*k;
       W.tutLook=W.tutLook||new THREE.Vector3(...T.l);W.tutLook.x+=(T.l[0]-W.tutLook.x)*k;W.tutLook.y+=(T.l[1]-W.tutLook.y)*k;W.tutLook.z+=(T.l[2]-W.tutLook.z)*k;cam.lookAt(W.tutLook);
       if(W.tut.shown<W.tut.full.length){W.tut.shown=Math.min(W.tut.full.length,W.tut.shown+dt*36);$('#tutTxt').textContent=W.tut.full.slice(0,Math.floor(W.tut.shown))}
