@@ -340,7 +340,7 @@ body{background:var(--bg);color:var(--ink)}
 
 /* ===== 手機版：遊戲畫面佔滿整個螢幕，資訊收進按鈕 ===== */
 .mob-only{display:none}
-.stgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0 12px}
+.stgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0 12px}
 .stgrid div{background:var(--tan);border-radius:14px;padding:6px 2px}
 .stgrid b{display:block;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
 .stgrid span{font-size:11px;color:var(--muted)}
@@ -465,7 +465,6 @@ body{background:var(--bg);color:var(--ink)}
   <section class="stats">
     <div class="stat clay"><b id="money"></b><span>💰 錢</span></div>
     <div class="stat clay"><b id="rep"></b><span>⭐ 口碑</span></div>
-    <div class="stat clay"><b id="expo"></b><span>📣 曝光</span></div>
     <div class="stat clay"><b id="leads"></b><span>🙋 客人</span></div>
   </section>
 
@@ -530,6 +529,39 @@ const RANKS=[
   {n:'🐔 店長',t:100000,st:15,cap:6,rq:75,say:'老蕭退休了，把幸福房屋交給你！'}
 ];
 const END_REQ=70;
+/* ===== 各區知名度（玩家看不到數字，只會從路人、電話、傳聞感覺到） ===== */
+const CORNER_D={0:'station',1:'school',2:'river',3:'school'},BANNER_D=['old','newtown'];
+const fameOf=d=>(S.fame&&S.fame[d])||0;
+function addFame(d,n){if(!d)return;if(!S.fame)S.fame={};S.fame[d]=clamp((S.fame[d]||0)+n,0,100)}
+function fameDist(){const ks=Object.keys(DIST),tot=ks.reduce((a,k)=>a+fameOf(k),0);if(tot<10||Math.random()<.4)return undefined;let r=Math.random()*tot;for(const k of ks){r-=fameOf(k);if(r<=0)return k}return undefined}
+function callOpening(c){const f=fameOf(c.d),a=c.area,me=S.name||'你';
+  if(f<12)return '你好，我看到你們的廣告';
+  if(f<30)return pick([`你好，我在${a}的電線桿上看過你們的傳單`,`你好，我經過${a}，看到你們的廣告`]);
+  if(f<60)return pick([`你好，${a}的朋友說找幸福房屋的${me}不錯`,`你好，我在${a}看到你們的布條，鄰居也推薦你們`]);
+  return pick([`你好，${a}到處都是幸福房屋的名字，大家都說找${me}準沒錯`,`${me}嗎？${a}的人都在講你，我也想請你幫忙`])}
+const RUMOR={'凶宅':n=>`鄰居阿姨壓低聲音：「「${n}」那間啊…晚上都沒人敢從門口走過，你自己查一查比較好喔。」`,
+  '違建':n=>`路邊的阿伯說：「「${n}」頂樓那個鐵皮屋，我看沒有申請過喔。」`,
+  '漏水':n=>`雜貨店老闆說：「「${n}」那棟，下雨天常看到有人在搬水桶。」`,
+  '海砂屋':n=>`鄰居說：「「${n}」牆角的鋼筋都生鏽露出來了，你要不要找人看看？」`};
+function fameWalk(){
+  if(!W||W.inside||W.tut||W.creator||W.acting||modalOpen()||!S.tutDone)return;
+  const p=W.agent.position,d=distKey(p.x,p.z);
+  if(W.wd===undefined){W.wd=d;return}
+  if(d===W.wd)return;W.wd=d;
+  if(W.wdDay===S.day&&S.time-(W.wdT||0)<90)return;
+  const f=fameOf(d),area=DIST[d].n;
+  const rl=S.listings.filter(L=>L.d===d&&!L.rumor&&L.flaws.some(x=>!(L.rev&&L.rev[x])));
+  if(rl.length&&Math.random()<.5){
+    const L=pick(rl),fl=L.flaws.filter(x=>!(L.rev&&L.rev[x]));const x=pick(fl);L.rumor=true;
+    W.wdDay=S.day;W.wdT=S.time;say('🗣️ '+(RUMOR[x]?RUMOR[x](L.name):`鄰居說：「${L.name}好像有點問題…」`)+'（那間物件已標上「有傳聞」，建議查一查）');return}
+  if(f>=18&&Math.random()<.55){
+    W.wdDay=S.day;W.wdT=S.time;
+    const me=S.name||'房仲';
+    if(f<40)say(pick(['路人指著你小聲說：「欸，那個好像是幸福房屋的…」','有人在電線桿前停下來，看著你貼的傳單點點頭 📄',`${area}的店員跟你揮揮手：「房仲先生，加油喔！」`]));
+    else if(f<70)say(pick([`路人笑著打招呼：「幸福房屋的${me}！上次傳單我還留著喔」`,'小朋友指著你大喊：「是紅布條房仲！」',`${area}的阿姨拉住你：「我家隔壁也想賣，下次來坐坐！」`]));
+    else{say(pick([`${area}的人都認得你，有人遞來一杯冰紅茶 🧋（體力 +1）`,`街角的老闆大聲說：「${me}～今天也來賣房喔！」整條街的人都轉頭看你`]));if(Math.random()<.5)S.st=Math.min(S.maxSt,S.st+1)}
+  }
+}
 /* 動作要升到哪個職位才能用（0＝一開始就能） */
 const UNL={banner:1,sign:1,inspbook:2,presale:3};
 const isLocked=k=>!S.noLock&&UNL[k]!==undefined&&S.rank<UNL[k];
@@ -765,7 +797,7 @@ function openMoto(){
 function showStatus(){
   const R0=rk(),lg=document.querySelector('.side .legend');
   openM(`<h3>📊 我的狀態</h3>
-    <div class="stgrid"><div><b>${fmt(S.money)}</b><span>💰 錢</span></div><div><b>${repFace()}</b><span>⭐ 口碑</span></div><div><b>${Math.round(S.expo)}</b><span>📣 曝光</span></div><div><b>${S.customers.length}</b><span>🙋 客人</span></div></div>
+    <div class="stgrid"><div><b>${fmt(S.money)}</b><span>💰 錢</span></div><div><b>${repFace()}</b><span>⭐ 口碑</span></div><div><b>${S.customers.length}</b><span>🙋 客人</span></div></div>
     <div class="row"><span>💪 體力</span><span>${S.st} / ${S.maxSt}</span></div><div class="bar"><i class="g" style="width:${S.st/S.maxSt*100}%"></i></div>
     <div class="row" style="margin-top:10px"><span>${R0.n}</span><span>${fmt(S.week)} / ${fmt(R0.t)} 元</span></div><div class="bar"><i class="r" style="width:${clamp(S.week/R0.t*100,0,100)}%"></i></div>
     <p class="small" style="text-align:left;margin-top:6px">本週業績達標、口碑夠好才能升職，本週還剩 ${7-((S.day-1)%7)} 天${S.scooter?'。🛵 已經有機車':''}</p>
@@ -797,7 +829,7 @@ function psPick(){
       <span class="small">想找${cWant(c)}，預算 ${fmt(c.budget)} 萬${seen?'（已經參觀過這個建案）':''}</span><div class="tags">${f.tags}</div></button>`}).join('')}
     <button class="btn alt" data-a="close">先不要</button>`);
 }
-function fresh(){return{rv:2,wd0:0,lowWeeks:0,ps:newPresale(),day:1,time:DAY_START,st:10,maxSt:10,money:5000,rep:50,expo:0,leads:0,listings:[],rank:0,week:0,total:0,deals:0,seq:1,ended:false,
+function fresh(){return{fame:{},rv:2,wd0:0,lowWeeks:0,ps:newPresale(),day:1,time:DAY_START,st:10,maxSt:10,money:5000,rep:50,expo:0,leads:0,listings:[],rank:0,week:0,total:0,deals:0,seq:1,ended:false,
   poles:POLES.map(()=>0),banners:[0,0],scouted:{},napDay:0,customers:[],cseq:1,
   msg:'早安！進公司了。按「出門跑業務」到街上，點地圖上的圖示我就會走過去做事。'}}
 function load(){try{const r=localStorage.getItem(KEY);return r?JSON.parse(r):null}catch(e){return null}}
@@ -805,8 +837,8 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function find(id){return S.listings.find(l=>l.id===id)}
 const known=L=>L.flaws.filter(f=>L.rev[f]),hidden=L=>L.flaws.filter(f=>!L.rev[f]);
 function askPrice(L){return Math.round(known(L).reduce((p,f)=>p*(1-FLAWS[f].cut),L.price))}
-function newCustomer(){
-  const d=Math.random()<.25?pick(Object.keys(DIST)):pick(LOTS).d;
+function newCustomer(dd){
+  const d=dd||(Math.random()<.25?pick(Object.keys(DIST)):pick(LOTS).d);
   const opts=LOTS.filter(l=>l.d===d).map(l=>l.type),type=Math.random()<.88&&opts.length?pick(opts):pick(TYPES);
   const school=d==='school'?Math.random()<.6:d==='station'?Math.random()<.25:false;
   const budget=Math.round(BASE[type]*DIST[d].m*(school?1.12:1)*rnd(.85,1.2)/10)*10;
@@ -858,7 +890,7 @@ function startSignFP(ctx){
   if(r<.08){n=Math.max(0,n-1);ev.push('🚓 警察來勸導「這裡不能舉牌喔」，只好提早收工')}
   else if(r<.15){n=Math.max(0,n-1);S.st=Math.max(0,S.st-1);ev.push('🌧️ 突然下大雨，淋成落湯雞，體力 -1')}
   else if(r<.23){S.st=Math.min(S.maxSt,S.st+1);ev.push('🧋 好心路人請你喝飲料，體力 +1')}
-  else if(r<.29){S.expo+=40;ev.push('📸 被路人拍照 PO 上網，意外爆紅！曝光 +40')}
+  else if(r<.29){S.expo+=40;ev.push('📸 被路人拍照 PO 上網，意外爆紅！名氣變大了')}
   if(!ev.length&&Math.random()<.2){
     if(isWeekend()){n=Math.min(3,n+1);ev.push('👨‍👩‍👧 假日全家出遊，一家人停下來跟你聊了好久')}
     else if(cr.m>=1.5){n=Math.max(0,n-1);ev.push('⏰ 上班族都在趕時間，沒什麼人願意停下來')}
@@ -895,11 +927,11 @@ function endSignFP(){
 function signFinish(){
   const F=W.signFP;if(!F){render();return}
   const G=SEGS[F.i];endSignFP();
-  S.expo+=F.expo;F.cs.forEach(c=>S.customers.push(c));
+  S.expo+=F.expo;addFame(CORNER_D[F.i],8+Math.min(10,F.cs.length*2));F.cs.forEach(c=>S.customers.push(c));
   const t0=Math.floor(F.from),t1=Math.floor(S.time),hm=m=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
   const rows=F.cs.map(c=>`<li>${G.e} ${c.name}（${c.seg}）：想找${cWant(c)}，預算 ${fmt(c.budget)} 萬</li>`);
   if(F.owner>=0)rows.push('<li>👴 散步的阿伯停下來說：「我家也想賣，你要不要來看看？」</li>');
-  F.ev.forEach(e=>rows.push(`<li>${e}</li>`));rows.push(`<li>📣 曝光 +${F.expo}</li>`);
+  F.ev.forEach(e=>rows.push(`<li>${e}</li>`));
   const none=!F.cs.length&&F.owner<0;
   S.msg=F.cs.length?`舉牌結束，多了 ${F.cs.length} 位客人！`:'舉牌結束了。';
   W.ownerLot=F.owner;
@@ -995,7 +1027,6 @@ function render(){
   S.rep=clamp(S.rep,0,100);
   $('#money').textContent=fmt(S.money);
   $('#rep').textContent=repFace();
-  $('#expo').textContent=Math.round(S.expo);
   $('#leads').textContent=S.customers.length;
   if(lastMoney!==null&&S.money!==lastMoney){const d=S.money-lastMoney,f=document.createElement('span');f.className='mfloat '+(d<0?'minus':'plus');f.textContent=(d<0?'－':'＋')+fmt(Math.abs(d))+' 元';$('#scene').appendChild(f);setTimeout(()=>f.remove(),1700)}
   lastMoney=S.money;
@@ -1031,6 +1062,7 @@ function rivalHtml(L){
 function tagsHtml(L){
   let tags=`<span class="tag">${DIST[L.d]?DIST[L.d].lv:''}</span>`+(L.school?'<span class="tag ok">🎒 學區</span>':'')+(L.excl?'<span class="tag ok">📜 專任約</span>':'<span class="tag">📄 一般約</span>');
   if(L.good) tags+='<span class="tag ok">😊 好運物件</span>';
+  if(L.rumor&&!known(L).length)tags+='<span class="tag bad">🗣️ 有傳聞，建議查一查</span>';
   known(L).forEach(f=>{tags+=`<span class="tag bad">${FLAWS[f].e} ${f}，降價 ${Math.round(FLAWS[f].cut*100)}%</span>`});
   for(const k in CHECKS){
     if(L.chk[k] && !known(L).some(f=>FLAWS[f].check===k)) tags+=`<span class="tag">✅ ${CHECKS[k]}沒問題</span>`;
@@ -1092,7 +1124,7 @@ function finishAct(){
     const f=psFit(C);S.money+=500;S.week+=500;S.total+=500;
     if(P.units>0&&Math.random()<f.ch){
       const price=clamp(Math.round(C.budget*rnd(.85,1)/10)*10,P.lo,P.hi),comm=Math.round(price*20*(P.boost?1.5:1));
-      S.money+=comm;S.week+=comm;S.total+=comm;S.deals++;S.rep+=3;P.units--;
+      S.money+=comm;S.week+=comm;S.total+=comm;S.deals++;S.rep+=3;P.units--;addFame('newtown',8);
       S.customers=S.customers.filter(c=>c.id!==C.id);
       S.msg=`${C.name}買了「${P.name}」！🏗️`;gong();confetti();
       openM(`<div class="big">🏗️</div><h3>預售屋成交！</h3><p>${C.name}買下「${P.name}」一戶，總價 ${price} 萬</p>
@@ -1114,15 +1146,15 @@ function finishAct(){
   if(k==='rest'){S.restDay=S.day;S.st=Math.min(S.maxSt,S.st+1);say(pick(['在河邊吹吹風，體力 +1 🍃','看阿公阿嬤下棋，心情變好了，體力 +1','餵了一下池塘的魚，體力 +1 🐟']));return}
   if(k==='flyer'){
     if(Math.random()<.15){S.money-=1200;S.expo+=6;say('傳單貼到一半被環保局看到，罰 1,200 元 😭')}
-    else{S.poles[ctx.i]=S.day;S.expo+=12;say(pick(['傳單貼好了！希望有人打電話來 📄','電線桿貼得漂漂亮亮！']))}
+    else{S.poles[ctx.i]=S.day;S.expo+=12;addFame(distKey(POLES[ctx.i][0],POLES[ctx.i][1]),6);say(pick(['傳單貼好了！希望有人打電話來 📄','電線桿貼得漂漂亮亮！']))}
   }else if(k==='banner'){
     if(Math.random()<.25){S.money-=1200;S.expo+=10;say('紅布條掛沒多久就被拆了，還被罰 1,200 元 😱')}
-    else{S.banners[ctx.i]=3;S.expo+=30;say('大大的紅布條掛起來了，超顯眼！🚩')}
+    else{S.banners[ctx.i]=3;S.expo+=30;addFame(BANNER_D[ctx.i],14);say('大大的紅布條掛起來了，超顯眼！🚩')}
   }else if(k==='sign'){
     signFinish();return;
   }else if(k==='scout'){
     S.scouted[ctx.i]=S.day;
-    if(Math.random()<homeRate()+S.rep/250){S.msg='有屋主願意委託！來抽卡看看這間房子吧';render();drawCard('有屋主願意委託！',ctx.i);return}
+    if(Math.random()<homeRate()+S.rep/250+fameOf(LOTS[ctx.i].d)/500){S.msg='有屋主願意委託！來抽卡看看這間房子吧';render();drawCard('有屋主願意委託！',ctx.i);return}
     const hh=S.time/60;
     say(pick(isWeekend()?['屋主在家，拉著你聊了半小時，最後說：「沒有要賣啦！」','開門的是小朋友：「爸爸媽媽帶我出去玩，晚點再來！」','屋主說：「假日不要談生意啦！」']
       :S.stormDay===S.day?['屋主說：「颱風天你還出來喔？先進來喝茶…不過我沒有要賣啦。」','屋主在家看新聞，沒心情談房子…']
@@ -1151,7 +1183,7 @@ function signEvent(){
   const r=Math.random(),fl=freeLots();
   if(r<.22){const c=newCustomer();S.customers.push(c);S.expo+=15;say(`🙋 路人${c.name}停下來問：「這間還在賣嗎？」多了一位客人！`)}
   else if(r<.34&&fl.length&&S.listings.length<cap()){S.expo+=15;S.msg='👴 隔壁阿伯走過來：「我家也想賣啦，你來看看」';render();drawCard('隔壁阿伯想賣房！',pick(fl));return true}
-  else if(r<.46){S.expo+=45;say('📸 被路人拍照 PO 上網，意外爆紅！曝光大增')}
+  else if(r<.46){S.expo+=45;say('📸 被路人拍照 PO 上網，意外爆紅！名氣大增')}
   else if(r<.58){S.expo+=10;say('🚓 警察來勸導：「這裡不能舉牌喔」只好先收工…')}
   else if(r<.68){S.st=Math.max(0,S.st-1);S.expo+=20;say('🌧️ 突然下大雨，淋成落湯雞… 體力 -1')}
   else if(r<.78){S.st=Math.min(S.maxSt,S.st+1);S.expo+=20;say('🧋 好心路人請你喝飲料，體力 +1')}
@@ -1340,7 +1372,7 @@ function pkQuit(){const C=findC(V.cid);endNego(`你決定先放棄這次斡旋�
 function upd(){}
 function deal(L,r){
   const price=Math.round(V.ask*r),comm=Math.round(price*30*(L.excl?1.2:1)),kn=known(L),hd=hidden(L),gain=kn.length?8:2;
-  S.money+=comm;S.week+=comm;S.total+=comm;S.deals++;S.rep+=gain;
+  S.money+=comm;S.week+=comm;S.total+=comm;S.deals++;S.rep+=gain;addFame(L.d,10);
   S.customers=S.customers.filter(c=>c.id!==V.cid);
   S.listings=S.listings.filter(x=>x.id!==L.id);
   const lines=[`🎉 成交！「${L.name}」賣了 ${price} 萬`,`💰 獎金 +${fmt(comm)} 元${L.excl?'（專任約多兩成）':`（搶在${L.rivalName}之前賣掉了！）`}`,`⭐ 口碑上升${kn.length?'（誠實告知問題，客人很感謝你）':''}`];
@@ -1385,7 +1417,7 @@ function rollCall(){
 function startCall(type){
   if(!W||W.call)return false;
   type=type||rollCall();
-  W.call={until:S.time+40,type,cust:(type==='cust'||type==='thanks')?newCustomer():null};$('#callbar').hidden=false;W.ringT=0;drawScreen();return true;
+  W.call={until:S.time+40,type,cust:(type==='cust'||type==='thanks')?newCustomer(type==='cust'?fameDist():undefined):null};$('#callbar').hidden=false;W.ringT=0;drawScreen();return true;
 }
 function endCall(){if(W){W.call=null;$('#callbar').hidden=true;drawScreen()}}
 function answerCall(){
@@ -1402,7 +1434,7 @@ function answerCall(){
   const type=W.call.type||'cust';
   if(type!=='cust'){const cc=W.call;endCall();otherCall(type,cc);return}
   const c=W.call.cust;endCall();c.until=S.day+3;
-  openM(`<div class="big">📞</div><h3>${c.name}來電</h3><p>「你好，我看到你們的廣告，想找<b style="font-weight:400;color:var(--red)">${cWant(c)}</b>，預算大概 <b style="font-weight:400;color:var(--red)">${fmt(c.budget)} 萬</b>，有推薦的嗎？」</p>
+  openM(`<div class="big">📞</div><h3>${c.name}來電</h3><p>「${callOpening(c)}，想找<b style="font-weight:400;color:var(--red)">${cWant(c)}</b>，預算大概 <b style="font-weight:400;color:var(--red)">${fmt(c.budget)} 萬</b>，有推薦的嗎？」</p>
     <p class="small">已經記到「客人名單」了，他大概會等 3 天</p>
     <button class="btn" data-a="close">好的！我幫您安排看房</button>`);
   S.customers.push(c);S.msg=`多了一位客人：${c.name}。有合適的物件就帶他去看吧。`;
@@ -1412,7 +1444,7 @@ function otherCall(type,cc){
   if(type==='bank'){advanceTime(15);S.msg='被銀行推銷綁了 15 分鐘…';
     openM(`<div class="big">💳</div><h3>銀行來電</h3><p>「您好～我們最近有信貸優惠，利率超低喔，要不要了解一下？」</p><p class="small">講了 15 分鐘才掛掉…</p>${btn('close','我在忙，謝謝')}`)}
   else if(type==='ad'){S.msg='房屋網業務打來推銷刊登。';
-    openM(`<div class="big">📢</div><h3>房屋網業務來電</h3><p>「要不要刊登在我們網站？一次 1,500 元，保證很多人看到！」</p>${btn('adyes','刊登（1,500 元，曝光 +40）',S.money<1500)}${btn('close','不用了，謝謝')}`)}
+    openM(`<div class="big">📢</div><h3>房屋網業務來電</h3><p>「要不要刊登在我們網站？一次 1,500 元，保證很多人看到！」</p>${btn('adyes','刊登（1,500 元）',S.money<1500)}${btn('close','不用了，謝謝')}`)}
   else if(type==='wrong'){S.msg='打錯電話了…';
     openM(`<div class="big">👵</div><h3>陌生來電</h3><p>「喂？阿珠喔？你阿珠喔？」</p><p class="small">「…阿嬤，您打錯了。」</p>${btn('close','掛掉')}`)}
   else if(type==='owner'){S.msg='有屋主打來想委託！';
@@ -1548,6 +1580,9 @@ function endDay(){
   else if(nr<.37&&S.listings.length){const L=pick(S.listings);L.price+=100;ev.push(`📱 半夜「${L.name}」的屋主傳 LINE：「我要漲價 100 萬啦！」`)}
   else if(nr<.5)ev.push('🌙 平安無事，好好睡了一覺');
   if(!ev.length)ev.push('😌 今天晚上很平靜');
+  {const fk=Object.keys(DIST).sort((a,b)=>fameOf(b)-fameOf(a))[0];
+   if(fameOf(fk)>=25&&Math.random()<.3)ev.push(`🗣️ 聽說${DIST[fk].n}最近很多人在聊「幸福房屋」，${fameOf(fk)>=60?'大家都說你很可靠':'好像有點名氣了'}`);
+   for(const k in S.fame)S.fame[k]*=.96}
   S.expo*=.7;S.day++;S.st=Math.max(1,S.maxSt+stB);S.time=DAY_START;
   const dEnd=(S.day-2)%7,dNew=(S.day-1)%7;
   if(dEnd===4)ev.push(`📊 週五結算：這週目前賺了 ${fmt(S.week)} 元，目標 ${fmt(rk().t)} 元。週末還有兩天！`);
@@ -1645,7 +1680,7 @@ document.addEventListener('click',e=>{
     showL:showListings,showC:showCustomers,music:()=>{toggleMusic();showMenu()},fs:()=>{closeM();toggleFS()},
     goto:()=>{const L=find(id);if(!L)return;const fromModal=modalOpen();if(fromModal)closeM();if(W.inside)leaveShop();if(W.view==='fp'){say('第一人稱模式要自己走過去喔，或在選單切回跟隨視角');return}
       if(!fromModal)$('#scene').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});goSpot(W.lotSpots[L.lot])},
-    adyes:()=>{S.money-=1500;S.expo+=40;closeM();say('刊登好了！曝光 +40 📢')},
+    adyes:()=>{S.money-=1500;S.expo+=40;Object.keys(DIST).forEach(k=>addFame(k,3));closeM();say('刊登好了！更多人看到你了 📢')},
     look:()=>setLook(k),lookdone:finishCreator,tutnext:tutNext,tutskip:()=>{if(W.tut&&W.tut.list)skipSeq();else endTutorial()},restyle:()=>{closeM();openCreator(false)},
     buymoto:()=>{if(S.money<20000)return;S.money-=20000;S.scooter=true;closeM();gong();say('買了一台機車！之後在鎮上移動會快很多 🛵')},
     bankgo:()=>{closeM();perform('bank',{cid:+k})},buy:()=>{closeM();perform(k,{})},
@@ -2639,6 +2674,7 @@ function tick(dt,t){
   W.phone.rotation.z=W.call&&!reduced?Math.sin(t*40)*.15:0;
   const m=Math.floor(S.time);if(m!==W.lastMin){W.lastMin=m;$('#clock').innerHTML=clockText()}
   // 移動
+  fameWalk();
   const ag=W.agent,p=ag.position,canMove=!W.acting&&!modalOpen()&&!W.inside&&!W.tut&&!W.creator&&!W.riding,K=W.keys,spd=S.scooter&&!W.inside?2.4:1;
   let jx=W.joy.x+(K.r?1:0)-(K.l?1:0),jy=W.joy.y+(K.f?1:0)-(K.b?1:0);
   const jl=Math.hypot(jx,jy);if(jl>1){jx/=jl;jy/=jl}
@@ -2817,6 +2853,7 @@ S=load();
 if(S&&(S.poles===undefined||S.time===undefined))S=null;
 if(S)S.listings.forEach(L=>{if(!L.flaws){L.flaws=L.flaw?[L.flaw]:[];L.rev=L.revealed&&L.flaw?{[L.flaw]:true}:{}}});
 if(S&&!S.ps)S.ps=newPresale();
+if(S&&!S.fame)S.fame={};
 if(S&&S.rv!==2){const mp={0:0,1:2,2:5};S.rank=mp[S.rank]!==undefined?mp[S.rank]:Math.min(S.rank,5);S.maxSt=RANKS[S.rank].st;S.rv=2;S.wd0=S.deals||0;S.lowWeeks=0;S.noLock=true}
 if(S&&!S.customers){S.customers=[];S.cseq=1;for(let i=0;i<(S.leads||0);i++)S.customers.push(newCustomer());
   S.listings.forEach(L=>{if(L.excl===undefined){L.excl=false;L.rival=0;L.rivalName=pick(RIVALS)}})}
