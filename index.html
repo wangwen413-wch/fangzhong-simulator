@@ -454,7 +454,7 @@ body{background:var(--bg);color:var(--ink)}
     <div class="callbar clay" id="callbar" hidden><span class="ring"><svg class="si" aria-hidden="true"><use href="#i-phone"/></svg> 電話響了！</span><button data-a="answer">接聽</button></div>
     <div class="shopui" id="shopui" hidden>
       <button data-a="sact" data-k="shop">☎️ 坐著等電話<small>體力 1，1 小時，比較容易有人打來</small></button>
-      <button data-a="sact" data-k="ghostnet" id="netbtn">💻 上網查凶宅網<small id="netsub"></small></button>
+      <button data-a="pc" id="netbtn">💻 查資料・約驗屋<small id="netsub"></small></button>
       <button data-a="sact" data-k="nap" id="napbtn">😴 午休一下<small>體力 +3，1 小時，一天一次</small></button>
       <button class="out" data-a="leave">🚪 出門跑業務<small>到街上貼傳單、找屋主</small></button>
     </div>
@@ -484,7 +484,7 @@ body{background:var(--bg);color:var(--ink)}
 
   <h2>地圖上可以做的事</h2>
   <div class="legend clay">
-    <div><span class="i">🏪</span><span>店門口：進店裡（或按右上角「回店」）<span class="c">店裡可以等電話、上網查凶宅網、午休</span></span></div>
+    <div><span class="i">🏪</span><span>店門口：進店裡（或按右上角「回店」）<span class="c">店裡可以等電話、上網查凶宅網、調資料、打電話約驗屋、午休</span></span></div>
     <div><span class="i">📞</span><span>電話響了：按「接聽」<span class="c">40 分鐘內沒接就漏接了，正在忙的時候沒辦法接</span></span></div>
     <div><span class="i">📄</span><span>電線桿：貼傳單<span class="c">體力 2，200 元，花 45 分鐘，可能被罰</span></span></div>
     <div><span class="i">🚩</span><span>舊大樓、工地圍籬：掛紅布條<span class="c">體力 3，800 元，花 1.5 小時，可能被拆</span></span></div>
@@ -544,7 +544,7 @@ const ACT={
   bank:{st:1,m:0,mins:60,n:'🏦 帶客人做貸款試算…'},bento:{st:0,m:120,mins:20,n:'🍱 吃便當中…'},drink:{st:0,m:50,mins:10,n:'🧋 喝飲料中…'},bentoS:{st:0,m:100,mins:20,n:'🍱 在超商吃便當中…'},coffee:{st:0,m:60,mins:10,n:'☕ 喝咖啡中…'},rest:{st:0,m:0,mins:60,n:'🪑 坐在長椅上休息…'},
   presale:{st:2,m:0,mins:90,n:'🏗️ 帶客參觀接待中心…'},
   shop:{st:1,m:0,mins:60,n:'☎️ 守店中…'},view:{st:3,m:0,mins:120,n:'🚶 帶看中…'},
-  ghostnet:{st:1,m:0,mins:30,n:'💻 上網查凶宅網中…'},nap:{st:0,m:0,mins:60,n:'😴 午休中…'},
+  ghostnet:{st:1,m:0,mins:30,n:'💻 上網查凶宅網中…'},docnet:{st:1,m:0,mins:60,n:'💻 線上調謄本資料中…'},inspbook:{st:0,m:1500,mins:10,n:'📞 打電話預約驗屋中…'},nap:{st:0,m:0,mins:60,n:'😴 午休中…'},
   ghost:{st:1,m:100,mins:30,n:'🔍 查凶宅網中…'},doc:{st:1,m:300,mins:60,n:'📑 調資料中…'},inspect:{st:2,m:1500,mins:90,n:'🔧 驗屋中…'}
 };
 const LOTS=[[-25,-14.6,'透天厝'],[-21.6,-14.6,'老公寓'],[-25,14.6,'透天厝'],[-21.6,14.6,'老公寓'],
@@ -951,9 +951,9 @@ function render(){
   $('#left').textContent=`本週還剩 ${7-((S.day-1)%7)} 天`;
   if(S.msg!==lastMsg){lastMsg=S.msg;const f=$('#say');f.textContent=S.msg;f.classList.add('show');clearTimeout(feedT);feedT=setTimeout(()=>f.classList.remove('show'),5000)}
   $('#clock').innerHTML=clockText();
-  const un=S.listings.filter(l=>!l.chk.ghost).length;
-  $('#netsub').textContent=un?`體力 1，查 ${un} 間共 ${un*100} 元，30 分鐘`:'沒有要查的物件';
-  $('#netbtn').disabled=!un||S.st<1||S.money<un*100;
+  const un=pcTodo();
+  $('#netsub').textContent=un?`還有 ${un} 項可以查、可以約`:'手上沒有要查的物件';
+  $('#netbtn').disabled=!un;
   $('#napbtn').disabled=S.napDay===S.day;
   $('#listings').innerHTML=S.listings.length?S.listings.map(lhtml).join(''):
     '<div class="empty">還沒有物件。點地圖上有 🚪 的住家按電鈴，問問看有沒有人想賣房子。</div>';
@@ -1013,7 +1013,8 @@ function perform(k,ctx){
   if(k==='bank'&&!findC(ctx.cid)){say('沒有客人可以帶來');return}
   if(k==='presale'&&!findC(ctx.cid)){say('沒有客人可以帶去參觀');return}
   if(k==='view'&&!findC(ctx.cid)){say('沒有客人可以帶看，先打廣告或守店吧');return}
-  const money=k==='ghostnet'?S.listings.filter(l=>!l.chk.ghost).length*100:a.m;
+  const money=k==='ghostnet'?S.listings.filter(l=>!l.chk.ghost).length*100:k==='docnet'?S.listings.filter(l=>!l.chk.doc).length*300:a.m;
+  if(k==='inspbook'){const L=find(ctx.id);if(!L||L.chk.inspect||L.insp){say('這間已經驗過或約好了');return}}
   if(k==='nap'&&S.napDay===S.day){say('今天已經午休過了');return}
   if(!can(a.st,money))return;
   S.st-=a.st;S.money-=money;
@@ -1072,6 +1073,11 @@ function finishAct(){
   }else if(k==='ghostnet'){
     const found=[];S.listings.forEach(L=>{if(L.chk.ghost)return;L.chk.ghost=true;if(L.flaws.includes('凶宅')){L.rev['凶宅']=true;found.push(L.name)}});
     say(found.length?`查到了！「${found.join('、')}」是凶宅 👻，會誠實標示降價賣。`:'凶宅網查過了，手上的物件都沒問題 ✅');
+  }else if(k==='docnet'){
+    const found=[];S.listings.forEach(L=>{if(L.chk.doc)return;L.chk.doc=true;L.flaws.filter(f=>FLAWS[f].check==='doc').forEach(f=>{L.rev[f]=true;found.push(`${L.name}（${FLAWS[f].e}${f}）`)})});
+    say(found.length?`謄本調出來了！查到 ${found.join('、')} 的問題，會誠實告訴客人、價格跟著調降。`:'謄本資料都調好了，手上的物件都沒問題 ✅');
+  }else if(k==='inspbook'){
+    const L=find(ctx.id);if(L){L.insp=S.day;say(`約好了！驗屋師傅會去「${L.name}」，報告明天早上出來 🔧`)}
   }else if(k==='nap'){
     S.napDay=S.day;S.st=Math.min(S.maxSt,S.st+3);say('睡了一下，精神好多了 😴 體力 +3');
   }else if(k==='view'){startViewModal(ctx.id,ctx.cid);return}
@@ -1097,12 +1103,26 @@ function checkResolve(id,k){
   if(fs.length){fs.forEach(f=>L.rev[f]=true);say(`查到了！這間有${fs.map(f=>FLAWS[f].e+f).join('、')}的問題。會誠實告訴客人，價格也跟著調降。`)}
   else say(`${CHECKS[k]}查過了，這方面沒問題 ✅`);
 }
+function pcTodo(){return S.listings.filter(l=>!l.chk.ghost).length+S.listings.filter(l=>!l.chk.doc).length+S.listings.filter(l=>!l.chk.inspect&&!l.insp).length}
+function openPC(){
+  if(W&&W.acting)return;
+  const g=S.listings.filter(l=>!l.chk.ghost).length,d=S.listings.filter(l=>!l.chk.doc).length,ins=S.listings.filter(l=>!l.chk.inspect&&!l.insp),wait=S.listings.filter(l=>l.insp&&!l.chk.inspect);
+  const late=S.time>=DAY_END-5;
+  const b=(a,k,on,t,sub)=>`<button class="btn${on?'':' alt'}" data-a="${a}" data-k="${k}" ${on?'':'disabled'}>${t}<br><span style="font-size:13px">${sub}</span></button>`;
+  const gw=!g?'都查過了':S.st<1?'體力不夠':S.money<g*100?'錢不夠':late?'已經下班了':'',dw=!d?'都調過了':S.st<1?'體力不夠':S.money<d*300?'錢不夠':late?'已經下班了':'';
+  const insB=ins.length?ins.map(L=>{const why=S.money<1500?'錢不夠':late?'已經下班了':'';return `<button class="btn alt" data-a="pcinsp" data-id="${L.id}" ${why?'disabled':''}>📞 約驗屋：${L.name}<br><span style="font-size:13px">${why||'1,500 元，不用體力，報告明天早上出來'}</span></button>`}).join(''):'<p class="small">沒有要約驗屋的物件</p>';
+  openM(`<div class="big">💻</div><h3>辦公桌</h3><p class="small">在店裡就能查的資料，一次把手上的物件都查完。<br>驗屋要師傅到現場，打電話約好，報告明天早上出來；想馬上知道就自己帶師傅去。</p>
+    ${b('pcdo','ghostnet',!gw,'👻 上網查凶宅網',gw||`體力 1，${g} 間共 ${fmt(g*100)} 元，30 分鐘`)}
+    ${b('pcdo','docnet',!dw,'📑 線上調謄本資料',dw||`體力 1，${d} 間共 ${fmt(d*300)} 元，1 小時`)}
+    ${insB}${wait.length?`<p class="small">🔧 等報告中：${wait.map(l=>l.name).join('、')}</p>`:''}
+    <button class="btn alt" data-a="close">關閉</button>`);
+}
 function openListing(L){
   const nc=S.customers.length;
   const why=nc<1?'目前沒有客人，先打廣告或接電話':S.st<3?`體力不夠（還剩 ${S.st}），回店裡午休或明天再來`:S.time>=DAY_END-5?'已經下班了，明天再來':'';
   let btns=`<button class="btn" data-a="pickc" data-id="${L.id}" ${why?'disabled':''}>🚶 帶客人來看（體力 3，2 小時）${why?`<br><span style="font-size:13px">${why}</span>`:''}</button>`;
   const cost={ghost:'體力 1，100 元',doc:'體力 1，300 元',inspect:'體力 2，1,500 元'};
-  for(const k in CHECKS){if(!L.chk[k])btns+=`<button class="btn alt" data-a="lact" data-k="${k}" data-id="${L.id}">${CHECKS[k]}（${cost[k]}）</button>`}
+  for(const k in CHECKS){if(k==='inspect'&&L.insp&&!L.chk.inspect){btns+=`<p class="small">🔧 已經約好驗屋，報告明天早上出來</p>`;continue}if(!L.chk[k])btns+=`<button class="btn alt" data-a="lact" data-k="${k}" data-id="${L.id}">${CHECKS[k]}（${cost[k]}）</button>`}
   const tags=tagsHtml(L);
   openM(`<h3>🏠 ${L.name}</h3><p>開價 ${askPrice(L)} 萬</p><p class="small">${L.quip}</p><div class="tags" style="justify-content:center">${tags}</div>${rivalHtml(L)}
     ${btns}<button class="btn alt" data-a="close">先離開</button>`);
@@ -1314,7 +1334,7 @@ function answerCall(){
     if(ak==='shop'){W.acting=null;$('#busy').hidden=true}
     else if(ak==='nap'){const a=W.acting,gain=Math.floor(3*a.t/a.dur);W.acting=null;$('#busy').hidden=true;
       S.napDay=S.day;S.st=Math.min(S.maxSt,S.st+gain);S.msg=gain?`午休到一半被電話吵醒… 體力只加了 ${gain}`:'才剛躺下就被電話吵醒… 體力沒有恢復 😫'}
-    else if(ak==='ghostnet'){finishAct()}
+    else if(ak==='ghostnet'||ak==='docnet'||ak==='inspbook'){finishAct()}
     else{say('手上的事做完才能接電話喔，快一點！');return}
     if(!W.call)return;
   }
@@ -1359,7 +1379,7 @@ function enterShop(){
   W.agent.position.set(W.IX,0,W.IZ-1.45);W.h=0;
   $('#shopui').hidden=false;$('#backbtn').hidden=true;$('#joy').hidden=true;$('#ctx').hidden=true;W.near=null;
   applyShopView();
-  W.camSnap=true;say(S.shopView==='top'?'回到店裡了。可以坐著等電話、上網查凶宅網，或午休一下。':'坐回辦公桌前了。點電話等客人打來，點螢幕可以查凶宅網。');
+  W.camSnap=true;say(S.shopView==='top'?'回到店裡了。可以坐著等電話、用電腦查資料、約驗屋，或午休一下。':'坐回辦公桌前了。點電話等客人打來，點螢幕可以查資料、約驗屋。');
 }
 function applyShopView(){
   const top=S.shopView==='top';W.agent.visible=top;W.cam.fov=top?40:66;W.cam.updateProjectionMatrix();
@@ -1374,7 +1394,7 @@ function drawScreen(){
   const L=[`🏠 物件　${S.listings.length} / ${cap()} 間`,`🙋 客人　${S.customers.length} 位`,`📈 本週　${fmt(S.week)} / ${fmt(R0.t)}`];
   L.forEach((t,i)=>x.fillText(t,26,104+i*54));
   if(W.call){x.fillStyle='#E8463A';x.fillRect(0,286,512,54);x.fillStyle='#fff';x.fillText('📞 電話響了！點電話接起來',26,313)}
-  else{x.fillStyle='#7A869C';x.font='22px Huninn,"PingFang TC",sans-serif';x.fillText('點電話等客人打來，點螢幕查凶宅網',26,313)}
+  else{x.fillStyle='#7A869C';x.font='22px Huninn,"PingFang TC",sans-serif';x.fillText('點電話等客人打來，點螢幕查資料、約驗屋',26,313)}
   W.scr.tex.needsUpdate=true;
 }
 function leaveShop(){
@@ -1489,6 +1509,9 @@ function endDay(){
     if(wr<.25){const c=newCustomer();c.budget=Math.round(c.budget*1.1/10)*10;S.customers.push(c);evM.push(`👨‍👩‍👧 假日一早，${c.name}一家人已經在門口等著看屋，想找${cWant(c)}`)}
     else if(wr<.42){S.time=Math.max(S.time,DAY_START+30);evM.push('🚗 假日塞車，晚了半小時才到公司')}
   }
+  S.listings.forEach(L=>{if(!L.insp||L.chk.inspect)return;delete L.insp;L.chk.inspect=true;
+    const fs=L.flaws.filter(f=>FLAWS[f].check==='inspect');fs.forEach(f=>L.rev[f]=true);
+    evM.push(fs.length?`📋 「${L.name}」的驗屋報告出來了：有${fs.map(f=>FLAWS[f].e+f).join('、')}的問題，會誠實告訴客人、價格跟著調降`:`📋 「${L.name}」的驗屋報告出來了：沒有問題 ✅`)});
   S.banners=S.banners.map(b=>Math.max(0,b-1));
   if((S.day-1)%7===0){
     ev.push('📅 週日晚上，老蕭幫你打這週的成績…');
@@ -1548,7 +1571,7 @@ document.addEventListener('click',e=>{
     owner:()=>drawCard('屋主主動上門！',W.ownerLot),
     lact:()=>{closeM();perform(k,{id})},
     pickc:()=>pickCustomer(id),viewc:()=>{closeM();perform('view',{id,cid:+k})},
-    answer:answerCall,back:goBack,leave:leaveShop,sact:()=>perform(k,{}),
+    pc:openPC,pcdo:()=>{closeM();perform(k,{})},pcinsp:()=>{closeM();perform('inspbook',{id})},answer:answerCall,back:goBack,leave:leaveShop,sact:()=>perform(k,{}),
     showL:showListings,showC:showCustomers,music:()=>{toggleMusic();showMenu()},fs:()=>{closeM();toggleFS()},
     goto:()=>{const L=find(id);if(!L)return;const fromModal=modalOpen();if(fromModal)closeM();if(W.inside)leaveShop();if(W.view==='fp'){say('第一人稱模式要自己走過去喔，或在選單切回跟隨視角');return}
       if(!fromModal)$('#scene').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});goSpot(W.lotSpots[L.lot])},
@@ -1563,7 +1586,7 @@ document.addEventListener('click',e=>{
     cno:()=>{S.rep-=6;closeM();say('買方很不爽，說要去網路上給負評… ⭐ 口碑 -6')},
     ride:()=>rideMRT(+k),bigmap:openBigMap,
     status:showStatus,
-    menu:showMenu,sview:()=>{S.shopView=k;closeM();applyShopView();say(k==='fp'?'坐在辦公桌前。點電話等客人打來，點螢幕可以查凶宅網。':'看整間店的視角。')},view:()=>{closeM();setView(k)},ctx:()=>doSpot(W.near)
+    menu:showMenu,sview:()=>{S.shopView=k;closeM();applyShopView();say(k==='fp'?'坐在辦公桌前。點電話等客人打來，點螢幕可以查資料、約驗屋。':'看整間店的視角。')},view:()=>{closeM();setView(k)},ctx:()=>doSpot(W.near)
   };
   if(map[a])map[a]();
 });
@@ -2399,7 +2422,7 @@ function initScene(){
       ray.setFromCamera(ndc,cam);const h=ray.intersectObjects(W.inClick.map(a=>a[0]),false)[0];if(!h)return;
       const kind=W.inClick.find(a=>a[0]===h.object)[1];
       if(kind==='phone'){if(W.call)answerCall();else perform('shop',{})}
-      else{if(S.listings.some(l=>!l.chk.ghost))perform('ghostnet',{});else say('電腦上沒有要查的物件')}
+      else openPC()
       return;
     }
     if(!W.down||W.view==='fp'||W.inside||W.acting||modalOpen())return;
