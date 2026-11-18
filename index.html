@@ -855,7 +855,7 @@ function openMoto(){
 }
 function showStatus(){
   const R0=rk(),lg=document.querySelector('.side .legend');
-  openM(`<h3>📊 我的狀態</h3>
+  openM(`<h3>📊 我的狀態</h3>${statusNote()}
     <div class="stgrid"><div><b>${fmt(S.money)}</b><span>💰 錢</span></div><div><b>${repFace()}</b><span>⭐ 口碑</span></div><div><b>${S.customers.length}</b><span>🙋 客人</span></div></div>
     <div class="row"><span>💪 體力</span><span>${S.st} / ${S.maxSt}</span></div><div class="bar"><i class="g" style="width:${S.st/S.maxSt*100}%"></i></div>
     <div class="row" style="margin-top:10px"><span>${R0.n}</span><span>${fmt(S.week)} / ${fmt(R0.t)} 元</span></div><div class="bar"><i class="r" style="width:${clamp(S.week/R0.t*100,0,100)}%"></i></div>
@@ -865,7 +865,7 @@ function showStatus(){
 }
 function openBank(){
   const list=S.customers;
-  openM(`<div class="big">🏦</div><h3>發大財銀行</h3><p class="small">帶客人來做貸款試算，銀行評估後通常可以多貸一點，客人的預算會提高約 10～15%。每位客人只能試算一次。</p>
+  openM(`<div class="big">🏦</div><h3>發大財銀行</h3>${S.opening===1&&!S.shopOpened?'<button class="btn" data-a="loan">🏪 申請開店貸款</button>':''}<p class="small">帶客人來做貸款試算，銀行評估後通常可以多貸一點，客人的預算會提高約 10～15%。每位客人只能試算一次。</p>
     ${list.length?list.map(c=>`<button class="btn alt pickc" data-a="bankgo" data-k="${c.id}" ${c.loan||S.st<1?'disabled':''}>🙋 ${c.name}<br><span class="small">想找${cWant(c)}，預算 ${fmt(c.budget)} 萬${c.loan?'（已經試算過）':''}</span></button>`).join(''):'<p class="small">目前沒有客人可以帶來，先去找客人吧。</p>'}
     <button class="btn alt" data-a="close">先離開</button>`);
 }
@@ -888,7 +888,7 @@ function psPick(){
       <span class="small">想找${cWant(c)}，預算 ${fmt(c.budget)} 萬${seen?'（已經參觀過這個建案）':''}</span><div class="tags">${f.tags}</div></button>`}).join('')}
     <button class="btn alt" data-a="close">先不要</button>`);
 }
-function fresh(){return{story:{},fame:{},rv:2,wd0:0,lowWeeks:0,ps:newPresale(),day:1,time:DAY_START,st:10,maxSt:10,money:5000,rep:50,expo:0,leads:0,listings:[],rank:0,week:0,total:0,deals:0,seq:1,ended:false,
+function fresh(){return{dd:{},fd:0,psd:0,dreams:0,story:{},fame:{},rv:2,wd0:0,lowWeeks:0,ps:newPresale(),day:1,time:DAY_START,st:10,maxSt:10,money:5000,rep:50,expo:0,leads:0,listings:[],rank:0,week:0,total:0,deals:0,seq:1,ended:false,
   poles:POLES.map(()=>0),banners:[0,0],scouted:{},napDay:0,customers:[],cseq:1,
   msg:'早安！進公司了。按「出門跑業務」到街上，點地圖上的圖示我就會走過去做事。'}}
 function load(){try{const r=localStorage.getItem(KEY);return r?JSON.parse(r):null}catch(e){return null}}
@@ -1183,7 +1183,7 @@ function finishAct(){
     const f=psFit(C);S.money+=500;S.week+=500;S.total+=500;
     if(P.units>0&&Math.random()<f.ch){
       const price=clamp(Math.round(C.budget*rnd(.85,1)/10)*10,P.lo,P.hi),comm=Math.round(price*20*(P.boost?1.5:1));
-      S.money+=comm;S.week+=comm;S.total+=comm;S.deals++;S.rep+=3;P.units--;addFame('newtown',8);
+      S.money+=comm;S.week+=comm;S.total+=comm;S.deals++;S.rep+=3;P.units--;addFame('newtown',8);S.psd=(S.psd||0)+1;
       S.customers=S.customers.filter(c=>c.id!==C.id);
       S.msg=`${C.name}買了「${P.name}」！🏗️`;gong();confetti();
       openM(`<div class="big">🏗️</div><h3>預售屋成交！</h3><p>${C.name}買下「${P.name}」一戶，總價 ${price} 萬</p>
@@ -1432,7 +1432,7 @@ function pkQuit(){const C=findC(V.cid);endNego(`你決定先放棄這次斡旋�
 function upd(){}
 function deal(L,r){
   const price=Math.round(V.ask*r),comm=Math.round(price*30*(L.excl?1.2:1)),kn=known(L),hd=hidden(L),gain=kn.length?8:2;
-  S.money+=comm;S.week+=comm;S.total+=comm;S.deals++;S.rep+=gain;addFame(L.d,10);
+  S.money+=comm;S.week+=comm;S.total+=comm;S.deals++;S.rep+=gain;addFame(L.d,10);S.dd[L.d]=(S.dd[L.d]||0)+1;if(L.flaws.some(f=>f==='凶宅'||f==='海砂屋'))S.fd=(S.fd||0)+1;
   const cu=S.customers.find(c=>c.id===V.cid);
   S.customers=S.customers.filter(c=>c.id!==V.cid);
   S.listings=S.listings.filter(x=>x.id!==L.id);
@@ -1680,15 +1680,17 @@ function endDay(){
     if(S.week>=R.t){
       const last=S.rank>=RANKS.length-1,N=last?null:RANKS[S.rank+1],need=last?END_REQ:N.rq;
       if(S.rep>=need){
-        if(last)S.ended=true;
+        if(last){if(!S.opening&&!S.shopOpened){S.opening=1;ev.push(SAY('老蕭','👴','你的業績和口碑都夠了，是時候開自己的店了！去發大財銀行談開店貸款吧，頭期款要先準備好喔。'),'🏪 開店目標解鎖：存夠頭期款，到發大財銀行申請「開店貸款」')}}
         else{S.rank++;S.maxSt=N.st;S.st=N.st;ev.push(`🎊 本週業績達標，口碑也夠好！升職成「${N.n}」<br>💪 體力上限變成 ${N.st}，🏠 可以同時負責 ${N.cap} 間物件${N.unl?'<br>🔓 新解鎖：'+N.unl:''}${N.say?'<br>'+N.say:''}`)}
-      }else ev.push(`📈 本週業績達標了！<br>不過老蕭說：「客人還不夠信任你，口碑再好一點才能${last?'開店':'升職'}。誠實告知房子的問題、準時帶看、別漏接電話，口碑就會慢慢起來。」`);
+      }else if(!(last&&(S.opening||S.shopOpened)))ev.push(`📈 本週業績達標了！<br>不過老蕭說：「客人還不夠信任你，口碑再好一點才能${last?'開店':'升職'}。誠實告知房子的問題、準時帶看、別漏接電話，口碑就會慢慢起來。」`);
     }else ev.push(`📉 本週業績沒達標（${fmt(S.week)} / ${fmt(R.t)} 元）<br>店長：「下週加油！」`);
     S.lowWeeks=made===0?(S.lowWeeks||0)+1:0;
     if(S.lowWeeks>=3&&!S.ended){
       S.lowWeeks=0;S.st+=2;const c=newCustomer();S.customers.push(c);
       ev.push(`🍱 連續三週都沒有成交，老蕭請你吃便當談心：「慢慢來，每個人都有這種時候。」<br>老蕭偷偷教你一招：${pick(['先去按電鈴找屋主，有物件才有東西賣','客人想要的區域和種類對得上，比較好成交','先查凶宅網、調資料，誠實告知問題，口碑會加分','傍晚和週末屋主比較在家，按電鈴比較容易成功'])}<br>🙋 還介紹了一位客人給你：${c.name}（想找${cWant(c)}）<br>💪 明天體力 +2`);
     }
+    S.idleW=made===0?(S.idleW||0)+1:0;
+    if(!S.ended&&!S.opening&&!S.shopOpened&&(S.rep<=10||S.idleW>=6))S.dreamNow=true;
     S.week=0;
     if(S.ps){S.ps.boost=false;if(S.ps.units<=0){S.ps=newPresale();ev.push(`🏗️ 新建案「${S.ps.name}」開賣！代銷請大家幫忙帶客`)}}
   }
@@ -1696,15 +1698,77 @@ function endDay(){
   if(dNew===0&&!S.ended)evM.unshift(`📋 週一早會：老蕭宣布這週目標是 ${fmt(rk().t)} 元，達標就升職！`);
   S.msg='早安！新的一天開始了，今天要去哪裡呢？';
   endCall();resetAgent();render();
+  if(S.dreamNow){startDream();return}
   if(S.ended){showEnding();return}
   const own=owner||mOwner;W.ownerLot=owner?ownerLot:(mOwner?pick(free):-1);
   startDayCine(dEnd,dNew,ev,evM,own);
 }
 function showEnding(){
+  if(S.ending&&S.shop){showEnding2();return}
   gong();confetti();
   openM(`<div class="big">🏪</div><h3>開店成功！</h3><p>你從菜鳥一路做到店長，終於開了自己的房仲店！</p>
     <ul class="events"><li>📅 花了 ${S.day-1} 天</li><li>🤝 成交 ${S.deals} 間</li><li>💰 累積獎金 ${fmt(S.total)} 元</li><li>⭐ 口碑 ${repFace()}</li></ul>
     <button class="btn" data-a="restart">再玩一次</button>`);
+}
+/* ===== 開店階段、結局、一場夢 ===== */
+const SHOPS={station:{n:'站前區',down:400000,desc:'捷運口人潮多，租金最貴'},old:{n:'老街區',down:250000,desc:'街坊都熟，租金便宜'},newtown:{n:'新市鎮',down:300000,desc:'新社區成長中，租金適中'}};
+const downPay=d=>Math.round(SHOPS[d].down*(S.rep>=85?.8:1));
+function statusNote(){let t='';if(S.dreams)t+=`<p class="small">🏷️ 稱號：夢遊房仲 ×${S.dreams}</p>`;if(S.opening===1&&!S.shopOpened)t+='<p class="small">🏪 你已經是店長了！存夠頭期款，到發大財銀行申請開店貸款吧。</p>';return t}
+function openLoan(){
+  const rows=Object.keys(SHOPS).map(d=>{const c=downPay(d),ok=S.money>=c;return `<button class="btn ${ok?'':'alt'}" data-a="shopsel" data-k="${d}" ${ok?'':'disabled'}>📍 ${SHOPS[d].n}（頭期款 ${fmt(c)} 元）<br><span class="small">${SHOPS[d].desc}${ok?'':`，還差 ${fmt(c-S.money)} 元`}</span></button>`}).join('');
+  openM(`<div class="big">🏪</div><h3>開店貸款</h3><p class="small">行員：「恭喜你當上店長！要開自己的店，先付頭期款，剩下的我們幫你貸。」${S.rep>=85?'<br>你的口碑很好，頭期款打八折！':''}</p>${rows}<button class="btn alt" data-a="close">我再存一下錢</button>`);
+}
+function openShopName(d){
+  const names=[`幸福房屋 ${SHOPS[d].n}店`,`${S.name||'菜鳥'}不動產`,'老蕭祝福房屋'];
+  openM(`<div class="big">🪧</div><h3>替新店取個名字</h3><p class="small">招牌要掛在${SHOPS[d].n}，選一個吧！</p>${names.map((n,i)=>`<button class="btn alt" data-a="shopname" data-k="${d}:${i}">${n}</button>`).join('')}<button class="btn alt" data-a="close">再想一想</button>`);
+}
+function buildShop(k){
+  const [d,i]=k.split(':'),names=[`幸福房屋 ${SHOPS[d].n}店`,`${S.name||'菜鳥'}不動產`,'老蕭祝福房屋'],name=names[+i];
+  S.money-=downPay(d);S.shop={d,name};S.opening=2;closeM();
+  const T=S.story,att=S.rep+fameOf(d),N=(t,e)=>({n:'旁白',e:e||'🏪',t}),B=t=>({n:'老蕭',e:'👴',boss:true,t});
+  const lines=[B('就是這裡了。招牌我幫你掛好了，歪不歪？'),N(`「${name}」的招牌亮起來了，紅布條在風中飄揚。`),B('來，剪綵！以後你就是老闆了。'),
+    N(att>=120?'開幕當天擠滿了街坊，連隔壁攤販都來送花籃。':att>=85?'來了不少客人，場面很溫馨。':'開幕有點冷清…老蕭默默坐在櫃台，幫你顧了半天店。','🎊'),
+    N(S.rep>=80?'第一季：客人上門的頻率比預期高，電話響個不停。':'第一季：生意普通，你一個人當老闆、業務、還兼掃地。','🗓️'),
+    T.rv===3?{n:RIVAL_NAME,e:'🙂',t:'花籃送到了。別得意，下次比業績！'}:N('第二季：對街開了一家大信房屋的分店，阿傑在門口對你比了個讚…還是挑釁？','🗓️')];
+  if(T.chen>=2)lines.push({n:'陳媽媽',e:'👩',t:'我帶朋友來買房。你講話老實，我只相信你。'});
+  if((T.ama||0)>=3)lines.push({n:'老屋主阿嬤',e:'👵',t:'少年仔，阿嬤帶紅龜粿來給你，生意興隆喔！'});
+  if(T.chen<2&&(T.ama||0)<3)lines.push(N(fameOf(d)>=30?`第三季：有熟客帶朋友來，說是在${SHOPS[d].n}聽說你的。`:'第三季：日子平平淡淡，你慢慢熟悉當老闆的節奏。','🗓️'));
+  lines.push(B('我當年也是這樣開始的。這間店，你顧得很好。'));
+  playScene(lines,finishYear);
+}
+function pickEnding(){
+  const dd=S.dd||{},tot=Math.max(1,S.deals),fd=S.fd||0,psd=S.psd||0,top=Object.keys(dd).sort((a,b)=>dd[b]-dd[a])[0];
+  if(fd>=3&&fd/tot>=.3)return'ghost';
+  if(psd>=3&&psd/tot>=.3)return'presale';
+  if(top&&dd[top]>=4&&dd[top]/tot>=.4&&(top==='old'||top==='river'||top==='newtown'))return top;
+  const rich=S.total>=800000;
+  if(S.rep>=80)return rich?'topshop':'cozy';
+  if(S.rep>=60)return rich?'steady':'small';
+  return rich?'news':'empty';
+}
+const ENDINGS={
+  topshop:{e:'🏆',t:'坪安鎮第一名店',x:'口碑好、業績也漂亮，客人排隊等你帶看。老蕭親自送來大花籃，上面寫著「青出於藍」。'},
+  cozy:{e:'🏡',t:'小而美的社區店',x:'店不大，但街坊天天來聊天，你記得每個人家裡的故事。賺得不多，卻很踏實。'},
+  steady:{e:'🏪',t:'穩穩當當的好店',x:'業績不錯、口碑也過得去，雖然不是第一名，卻是很多人心中可靠的房仲。'},
+  small:{e:'🏠',t:'自己的小店',x:'生意普通，每個月都在算房租，但你很開心，因為這是你自己的店。'},
+  news:{e:'📰',t:'業績王，但客訴不斷',x:'業績衝到全鎮第一，客訴也跟著來，還上了地方新聞。老蕭搖搖頭：「錢賺得到，口碑要顧啊。」'},
+  empty:{e:'🕸️',t:'開幕沒人',x:'開幕後的日子很安靜。老蕭每天默默來店裡坐著，幫你顧店、泡茶，說：「慢慢來。」'},
+  ghost:{e:'👻',t:'凶宅達人',x:'你賣出太多「有故事」的房子，「找幸福房屋，連凶宅都賣得出去」傳遍坪安鎮，招牌變成搞笑傳說，還有人專程來拍照。'},
+  presale:{e:'🏙️',t:'預售屋之王',x:'你帶看預售屋的次數多到代銷公司都認識你，建商主動上門找你合作，新市鎮的新大樓都掛上你的名字。'},
+  old:{e:'🏮',t:'老街之光',x:'你賣了一間又一間的老街房子，招牌變成老街的打卡景點，連觀光客都來問：「這間就是那個老街之光嗎？」'},
+  river:{e:'🌊',t:'河濱豪宅專家',x:'河濱區的買賣幾乎都找你。你站在河邊看著夕陽，覺得這個「蛋殼區」也有自己的浪漫。'},
+  newtown:{e:'🏗️',t:'新市鎮開發王',x:'新市鎮的成交一筆接一筆，你開了第二間分店。老蕭看著新招牌說：「這下我真的可以退休了。」'}};
+function finishYear(){S.ending={key:pickEnding()};S.ended=true;S.shopOpened=true;S.opening=3;save();showEnding2()}
+function showEnding2(){
+  gong();confetti();const E=ENDINGS[S.ending.key],sh=S.shop;
+  openM(`<div class="big">${E.e}</div><h3>${E.t}</h3><p>${E.x}</p>
+    <ul class="events"><li>🏪 「${sh.name}」開在${DIST[sh.d].n}</li><li>📅 花了 ${S.day-1} 天</li><li>🤝 成交 ${S.deals} 間</li><li>💰 累積獎金 ${fmt(S.total)} 元</li><li>⭐ 口碑 ${repFace()}</li></ul>
+    <button class="btn" data-a="restart">再玩一次</button><button class="btn alt" data-a="contin">繼續經營</button>`);
+}
+function startDream(){
+  S.dreamNow=false;const lk=S.look,nm=S.name,dr=(S.dreams||0)+1;
+  const fin=()=>{S=fresh();S.look=lk;S.name=nm;S.tutDone=true;S.dreams=dr;save();if(W)resetAgent();render();say('原來是一場夢…你還是那個菜鳥房仲。今天也要加油！')};
+  playScene([{n:'旁白',e:'⏰',t:'鈴鈴鈴鈴鈴——'},{n:'老蕭',e:'👴',boss:true,t:'菜鳥！！九點了！傳單還沒貼！！你還在睡！'},{n:'旁白',e:'💭',t:'你猛然坐起來，口袋裡是皺皺的傳單。剛剛的一切，原來只是一場夢？'},{n:'老蕭',e:'👴',boss:true,t:'（小聲）你剛剛夢話一直喊「開店」…有志氣，不過先把傳單貼完。'}],fin);
 }
 const INTRO=[
   ['🧑‍💼','歡迎來到坪安鎮','你是「幸福房屋」剛進公司的菜鳥房仲<br>目標是在坪安鎮開一間自己的店！'],
@@ -1746,7 +1810,7 @@ document.addEventListener('click',e=>{
     goto:()=>{const L=find(id);if(!L)return;const fromModal=modalOpen();if(fromModal)closeM();if(W.inside)leaveShop();if(W.view==='fp'){say('第一人稱模式要自己走過去喔，或在選單切回跟隨視角');return}
       if(!fromModal)$('#scene').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});goSpot(W.lotSpots[L.lot])},
     adyes:()=>{S.money-=1500;S.expo+=40;Object.keys(DIST).forEach(k=>addFame(k,3));closeM();say('刊登好了！更多人看到你了 📢')},
-    look:()=>setLook(k),lookdone:finishCreator,tutnext:tutNext,sceneok:()=>{closeM();const a=W.sceneAfter;W.sceneAfter=null;if(a)a()},tutskip:()=>{if(W.tut&&W.tut.list)skipSeq();else endTutorial()},restyle:()=>{closeM();openCreator(false)},
+    look:()=>setLook(k),lookdone:finishCreator,tutnext:tutNext,loan:openLoan,shopsel:()=>openShopName(k),shopname:()=>buildShop(k),contin:()=>{S.ended=false;closeM();save();render()},sceneok:()=>{closeM();const a=W.sceneAfter;W.sceneAfter=null;if(a)a()},tutskip:()=>{if(W.tut&&W.tut.list)skipSeq();else endTutorial()},restyle:()=>{closeM();openCreator(false)},
     buymoto:()=>{if(S.money<20000)return;S.money-=20000;S.scooter=true;closeM();gong();say('買了一台機車！之後在鎮上移動會快很多 🛵')},
     bankgo:()=>{closeM();perform('bank',{cid:+k})},buy:()=>{closeM();perform(k,{})},
     pspick:psPick,psgo:()=>{closeM();perform('presale',{cid:+k})},
@@ -2920,6 +2984,7 @@ if(S)S.listings.forEach(L=>{if(!L.flaws){L.flaws=L.flaw?[L.flaw]:[];L.rev=L.reve
 if(S&&!S.ps)S.ps=newPresale();
 if(S&&!S.fame)S.fame={};
 if(S&&!S.story)S.story={};
+if(S&&!S.dd){S.dd={};S.fd=0;S.psd=0}
 if(S&&S.rv!==2){const mp={0:0,1:2,2:5};S.rank=mp[S.rank]!==undefined?mp[S.rank]:Math.min(S.rank,5);S.maxSt=RANKS[S.rank].st;S.rv=2;S.wd0=S.deals||0;S.lowWeeks=0;S.noLock=true}
 if(S&&!S.customers){S.customers=[];S.cseq=1;for(let i=0;i<(S.leads||0);i++)S.customers.push(newCustomer());
   S.listings.forEach(L=>{if(L.excl===undefined){L.excl=false;L.rival=0;L.rivalName=pick(RIVALS)}})}
