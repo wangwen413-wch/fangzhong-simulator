@@ -522,13 +522,17 @@ const DAY_START=480,DAY_END=1260,MIN_PER_SEC=5;
 /* t＝這個職位每週要賺到的錢才能升；rq＝升上這個職位需要的口碑 */
 const RANKS=[
   {n:'🐣 菜鳥房仲',t:30000,st:10,cap:4,rq:0,say:''},
-  {n:'🐥 正式房仲',t:40000,st:11,cap:4,rq:45,say:'老蕭：「簽下專任約的人，才算正式房仲！」'},
-  {n:'🐤 資深房仲',t:55000,st:12,cap:5,rq:50,say:'同事開始跟你搶客人，別家房仲也盯上你的物件了…'},
-  {n:'🏅 金牌房仲',t:70000,st:13,cap:5,rq:60,say:'預售屋接待中心的代銷也點名要你幫忙！'},
+  {n:'🐥 正式房仲',t:40000,st:11,cap:4,rq:45,unl:'掛紅布條、舉牌、專任約',say:'老蕭：「簽下專任約的人，才算正式房仲！」'},
+  {n:'🐤 資深房仲',t:55000,st:12,cap:5,rq:50,unl:'查凶宅網、調資料、驗屋（店裡的電腦也能用）',say:'同事開始跟你搶客人，別家房仲也盯上你的物件了…'},
+  {n:'🏅 金牌房仲',t:70000,st:13,cap:5,rq:60,unl:'預售屋接待中心',say:'預售屋接待中心的代銷也點名要你幫忙！'},
   {n:'🎖️ 副店長',t:85000,st:14,cap:6,rq:70,say:'老蕭把一個新來的菜鳥交給你帶，你也變成別人的老蕭了。'},
   {n:'🐔 店長',t:100000,st:15,cap:6,rq:75,say:'老蕭退休了，把幸福房屋交給你！'}
 ];
 const END_REQ=70;
+/* 動作要升到哪個職位才能用（0＝一開始就能） */
+const UNL={banner:1,sign:1,ghostnet:2,docnet:2,inspbook:2,ghost:2,doc:2,inspect:2,pc:2,presale:3};
+const isLocked=k=>!S.noLock&&UNL[k]!==undefined&&S.rank<UNL[k];
+const lockMsg=k=>`🔒 要升到「${RANKS[UNL[k]].n}」才能使用。老蕭：「先把基本功練好，業績和口碑夠了就會升職！」`;
 const rk=()=>RANKS[Math.min(S.rank,RANKS.length-1)];
 const cap=()=>rk().cap;
 const repFace=()=>S.rep>=65?'😊':S.rep>=40?'😐':'😟';
@@ -610,6 +614,7 @@ function psFit(C){
   return{ch:clamp(ch+S.rep/500,.05,.85),tags:tags.join('')};
 }
 function openPresale(){
+  if(isLocked('presale')){say(lockMsg('presale'));return}
   const P=S.ps;
   if(P.units<=0){openM(`<div class="big">🎉</div><h3>${P.name} 已完銷</h3><p class="small">代銷說下週一會推出新建案，到時再來幫忙找客人吧！</p><button class="btn alt" data-a="close">好</button>`);return}
   const nc=S.customers.length,why=nc<1?'目前沒有客人，先打廣告或接電話':S.st<2?`體力不夠（還剩 ${S.st}）`:S.time>=DAY_END-5?'已經下班了，明天再來':'';
@@ -1021,6 +1026,7 @@ function doSpot(sp){
 }
 function perform(k,ctx){
   const a=ACT[k];
+  if(isLocked(k)){say(lockMsg(k));return}
   if(k==='bank'&&!findC(ctx.cid)){say('沒有客人可以帶來');return}
   if(k==='presale'&&!findC(ctx.cid)){say('沒有客人可以帶去參觀');return}
   if(k==='view'&&!findC(ctx.cid)){say('沒有客人可以帶看，先打廣告或守店吧');return}
@@ -1117,6 +1123,7 @@ function checkResolve(id,k){
 function pcTodo(){return S.listings.filter(l=>!l.chk.ghost).length+S.listings.filter(l=>!l.chk.doc).length+S.listings.filter(l=>!l.chk.inspect&&!l.insp).length}
 function openPC(){
   if(W&&W.acting)return;
+  if(isLocked('pc')){say(lockMsg('pc'));return}
   const g=S.listings.filter(l=>!l.chk.ghost).length,d=S.listings.filter(l=>!l.chk.doc).length,ins=S.listings.filter(l=>!l.chk.inspect&&!l.insp),wait=S.listings.filter(l=>l.insp&&!l.chk.inspect);
   const late=S.time>=DAY_END-5;
   const b=(a,k,on,t,sub)=>`<button class="btn${on?'':' alt'}" data-a="${a}" data-k="${k}" ${on?'':'disabled'}>${t}<br><span style="font-size:13px">${sub}</span></button>`;
@@ -1168,7 +1175,7 @@ function newListing(lot){
   const r=Math.random(),good=r<.25;
   const flaws=[];if(!good&&r>.6){flaws.push(pick(Object.keys(FLAWS)));if(Math.random()<.3){const o=Object.keys(FLAWS).filter(f=>f!==flaws[0]);flaws.push(pick(o))}}
   const quip=good?pick(GOOD_NOTES):(flaws.length&&Math.random()<.6?FLAWS[flaws[0]].q:pick(QUIPS));
-  const L0=LOTS[lot],area=DIST[L0.d].n,type=L0.type,excl=Math.random()<(good?.55:.3)+S.rep/300;
+  const L0=LOTS[lot],area=DIST[L0.d].n,type=L0.type,excl=(S.noLock||S.rank>=1)&&Math.random()<(good?.55:.3)+S.rep/300;
   return{id:S.seq++,lot,area,d:L0.d,type,school:L0.school,name:area+type,price:lotPrice(L0),good,flaws,rev:{},quip,chk:{},
     excl,rival:0,rivalName:pick(RIVALS)};
 }
@@ -1532,7 +1539,7 @@ function endDay(){
       const last=S.rank>=RANKS.length-1,N=last?null:RANKS[S.rank+1],need=last?END_REQ:N.rq;
       if(S.rep>=need){
         if(last)S.ended=true;
-        else{S.rank++;S.maxSt=N.st;S.st=N.st;ev.push(`🎊 本週業績達標，口碑也夠好！升職成「${N.n}」<br>💪 體力上限變成 ${N.st}，🏠 可以同時負責 ${N.cap} 間物件${N.say?'<br>'+N.say:''}`)}
+        else{S.rank++;S.maxSt=N.st;S.st=N.st;ev.push(`🎊 本週業績達標，口碑也夠好！升職成「${N.n}」<br>💪 體力上限變成 ${N.st}，🏠 可以同時負責 ${N.cap} 間物件${N.unl?'<br>🔓 新解鎖：'+N.unl:''}${N.say?'<br>'+N.say:''}`)}
       }else ev.push(`📈 本週業績達標了！<br>不過老蕭說：「客人還不夠信任你，口碑再好一點才能${last?'開店':'升職'}。誠實告知房子的問題、準時帶看、別漏接電話，口碑就會慢慢起來。」`);
     }else ev.push(`📉 本週業績沒達標（${fmt(S.week)} / ${fmt(R.t)} 元）<br>店長：「下週加油！」`);
     S.lowWeeks=made===0?(S.lowWeeks||0)+1:0;
@@ -2766,7 +2773,7 @@ S=load();
 if(S&&(S.poles===undefined||S.time===undefined))S=null;
 if(S)S.listings.forEach(L=>{if(!L.flaws){L.flaws=L.flaw?[L.flaw]:[];L.rev=L.revealed&&L.flaw?{[L.flaw]:true}:{}}});
 if(S&&!S.ps)S.ps=newPresale();
-if(S&&S.rv!==2){const mp={0:0,1:2,2:5};S.rank=mp[S.rank]!==undefined?mp[S.rank]:Math.min(S.rank,5);S.maxSt=RANKS[S.rank].st;S.rv=2;S.wd0=S.deals||0;S.lowWeeks=0}
+if(S&&S.rv!==2){const mp={0:0,1:2,2:5};S.rank=mp[S.rank]!==undefined?mp[S.rank]:Math.min(S.rank,5);S.maxSt=RANKS[S.rank].st;S.rv=2;S.wd0=S.deals||0;S.lowWeeks=0;S.noLock=true}
 if(S&&!S.customers){S.customers=[];S.cseq=1;for(let i=0;i<(S.leads||0);i++)S.customers.push(newCustomer());
   S.listings.forEach(L=>{if(L.excl===undefined){L.excl=false;L.rival=0;L.rivalName=pick(RIVALS)}})}
 try{initScene()}catch(e){console.error(e);$('#scene').insertAdjacentHTML('beforeend','<div class="fallback">這台裝置沒辦法顯示 3D 畫面，<br>換個瀏覽器試試看。</div>')}
