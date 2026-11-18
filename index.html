@@ -473,7 +473,7 @@ body{background:var(--bg);color:var(--ink)}
     <div class="bar"><i class="g" id="stBar"></i></div>
     <div class="row" style="margin-top:8px"><span id="rank"></span><span id="wkTxt"></span></div>
     <div class="bar"><i class="r" id="wkBar"></i></div>
-    <div class="row small" style="margin-bottom:0"><span>本週業績達標就能升職</span><span id="left"></span></div>
+    <div class="row small" style="margin-bottom:0"><span>業績達標、口碑夠好才能升職</span><span id="left"></span></div>
   </section>
 
   <h2 id="lh">手上的物件</h2>
@@ -519,8 +519,19 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const reduced=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 const DAY_START=480,DAY_END=1260,MIN_PER_SEC=5;
 
-const RANKS=[{n:'🐣 菜鳥業務',t:30000,st:10,cap:4},{n:'🐥 資深業務',t:60000,st:12,cap:5},{n:'🐔 店長',t:90000,st:14,cap:6}];
-const cap=()=>RANKS[Math.min(S.rank,2)].cap;
+/* t＝這個職位每週要賺到的錢才能升；rq＝升上這個職位需要的口碑 */
+const RANKS=[
+  {n:'🐣 菜鳥房仲',t:30000,st:10,cap:4,rq:0,say:''},
+  {n:'🐥 正式房仲',t:40000,st:11,cap:4,rq:45,say:'老蕭：「簽下專任約的人，才算正式房仲！」'},
+  {n:'🐤 資深房仲',t:55000,st:12,cap:5,rq:50,say:'同事開始跟你搶客人，別家房仲也盯上你的物件了…'},
+  {n:'🏅 金牌房仲',t:70000,st:13,cap:5,rq:60,say:'預售屋接待中心的代銷也點名要你幫忙！'},
+  {n:'🎖️ 副店長',t:85000,st:14,cap:6,rq:70,say:'老蕭把一個新來的菜鳥交給你帶，你也變成別人的老蕭了。'},
+  {n:'🐔 店長',t:100000,st:15,cap:6,rq:75,say:'老蕭退休了，把幸福房屋交給你！'}
+];
+const END_REQ=70;
+const rk=()=>RANKS[Math.min(S.rank,RANKS.length-1)];
+const cap=()=>rk().cap;
+const repFace=()=>S.rep>=65?'😊':S.rep>=40?'😐':'😟';
 const DIST={river:{n:'河濱區',lv:'🟤 蛋殼區',m:.7},old:{n:'老街區',lv:'⚪ 蛋白區',m:1},station:{n:'站前區',lv:'🟡 蛋黃區',m:1.4},school:{n:'學府區',lv:'🟡 蛋黃區',m:1.25},newtown:{n:'新市鎮',lv:'⚪ 蛋白區',m:1.05}};
 const distKey=(x,z)=>x<-16?'river':x<0?'old':x<16?(z<0?'station':'school'):'newtown';
 const BASE={'透天厝':1150,'老公寓':700,'電梯大樓':1100,'華廈':850,'小套房':560,'兩房新成屋':1000};
@@ -572,7 +583,7 @@ const TUT=[
   {t:'新市鎮在蓋預售屋，代銷公司會請我們幫忙找客人，帶客人去接待中心參觀就有獎金。',c:[17.5,6,-2],l:[23.2,2.5,-13]},
   {t:'河濱區是「蛋殼區」，房子最便宜。跑累了可以去河濱公園坐坐，休息一下。',c:[-14.5,7.5,7],l:[-23.5,0,0]},
   {t:'鎮上不小，用走的很累吧？存到 20,000 元，可以去七匹狼機車行買台機車，跑業務會快很多！',c:[1.8,3.6,3.2],l:[-4.6,1,0]},
-  {t:'每週業績達標就能升職，當上店長再達標，就能開自己的店。好啦，出門賣房去吧！',c:[4.9,1.7,-10.8],l:[4.9,1.1,-7.4]}
+  {t:'每週業績達標、口碑夠好，就能升職。一路升到店長，再達標就能開自己的店。口碑要靠誠實告知問題、準時帶看、別漏接電話慢慢累積喔。好啦，出門賣房去吧！',c:[4.9,1.7,-10.8],l:[4.9,1.1,-7.4]}
 ];
 function gradeHex(h){
   const c=new THREE.Color(h),o={};c.getHSL(o);
@@ -703,12 +714,12 @@ function openMoto(){
     <button class="btn alt" data-a="close">再存一下錢</button>`);
 }
 function showStatus(){
-  const R0=RANKS[Math.min(S.rank,2)],lg=document.querySelector('.side .legend');
+  const R0=rk(),lg=document.querySelector('.side .legend');
   openM(`<h3>📊 我的狀態</h3>
-    <div class="stgrid"><div><b>${fmt(S.money)}</b><span>💰 錢</span></div><div><b>${S.rep}</b><span>⭐ 口碑</span></div><div><b>${Math.round(S.expo)}</b><span>📣 曝光</span></div><div><b>${S.customers.length}</b><span>🙋 客人</span></div></div>
+    <div class="stgrid"><div><b>${fmt(S.money)}</b><span>💰 錢</span></div><div><b>${repFace()}</b><span>⭐ 口碑</span></div><div><b>${Math.round(S.expo)}</b><span>📣 曝光</span></div><div><b>${S.customers.length}</b><span>🙋 客人</span></div></div>
     <div class="row"><span>💪 體力</span><span>${S.st} / ${S.maxSt}</span></div><div class="bar"><i class="g" style="width:${S.st/S.maxSt*100}%"></i></div>
     <div class="row" style="margin-top:10px"><span>${R0.n}</span><span>${fmt(S.week)} / ${fmt(R0.t)} 元</span></div><div class="bar"><i class="r" style="width:${clamp(S.week/R0.t*100,0,100)}%"></i></div>
-    <p class="small" style="text-align:left;margin-top:6px">本週業績達標就能升職，本週還剩 ${7-((S.day-1)%7)} 天${S.scooter?'。🛵 已經有機車':''}</p>
+    <p class="small" style="text-align:left;margin-top:6px">本週業績達標、口碑夠好才能升職，本週還剩 ${7-((S.day-1)%7)} 天${S.scooter?'。🛵 已經有機車':''}</p>
     ${lg?`<details class="lgd"><summary>📍 地圖上可以做的事</summary><div class="legend">${lg.innerHTML}</div></details>`:''}
     <button class="btn alt" data-a="close">關閉</button>`);
 }
@@ -737,7 +748,7 @@ function psPick(){
       <span class="small">想找${cWant(c)}，預算 ${fmt(c.budget)} 萬${seen?'（已經參觀過這個建案）':''}</span><div class="tags">${f.tags}</div></button>`}).join('')}
     <button class="btn alt" data-a="close">先不要</button>`);
 }
-function fresh(){return{ps:newPresale(),day:1,time:DAY_START,st:10,maxSt:10,money:5000,rep:50,expo:0,leads:0,listings:[],rank:0,week:0,total:0,deals:0,seq:1,ended:false,
+function fresh(){return{rv:2,wd0:0,lowWeeks:0,ps:newPresale(),day:1,time:DAY_START,st:10,maxSt:10,money:5000,rep:50,expo:0,leads:0,listings:[],rank:0,week:0,total:0,deals:0,seq:1,ended:false,
   poles:POLES.map(()=>0),banners:[0,0],scouted:{},napDay:0,customers:[],cseq:1,
   msg:'早安！進公司了。按「出門跑業務」到街上，點地圖上的圖示我就會走過去做事。'}}
 function load(){try{const r=localStorage.getItem(KEY);return r?JSON.parse(r):null}catch(e){return null}}
@@ -934,7 +945,7 @@ function clockText(){
 function render(){
   S.rep=clamp(S.rep,0,100);
   $('#money').textContent=fmt(S.money);
-  $('#rep').textContent=S.rep;
+  $('#rep').textContent=repFace();
   $('#expo').textContent=Math.round(S.expo);
   $('#leads').textContent=S.customers.length;
   if(lastMoney!==null&&S.money!==lastMoney){const d=S.money-lastMoney,f=document.createElement('span');f.className='mfloat '+(d<0?'minus':'plus');f.textContent=(d<0?'－':'＋')+fmt(Math.abs(d))+' 元';$('#scene').appendChild(f);setTimeout(()=>f.remove(),1700)}
@@ -944,7 +955,7 @@ function render(){
   $('#lh').textContent=`手上的物件（${S.listings.length}/${cap()}）`;
   $('#stTxt').textContent=`${S.st} / ${S.maxSt}`;
   $('#stBar').style.width=(S.st/S.maxSt*100)+'%';
-  const R=RANKS[Math.min(S.rank,2)];
+  const R=rk();
   $('#rank').textContent=R.n;
   $('#wkTxt').textContent=`${fmt(S.week)} / ${fmt(R.t)} 元`;
   $('#wkBar').style.width=clamp(S.week/R.t*100,0,100)+'%';
@@ -1004,7 +1015,7 @@ function doSpot(sp){
     const L=S.listings.find(l=>l.lot===sp.i);
     if(L)openListing(L);
     else if(S.scouted[sp.i]===S.day)say('這戶今天已經問過了，換一家試試');
-    else if(S.listings.length>=cap())say(`${RANKS[Math.min(S.rank,2)].n}最多同時負責 ${cap()} 間物件，先賣掉一些吧！升職後可以接更多。`);
+    else if(S.listings.length>=cap())say(`${rk().n}最多同時負責 ${cap()} 間物件，先賣掉一些吧！升職後可以接更多。`);
     else perform('scout',{i:sp.i});
   }
 }
@@ -1035,7 +1046,7 @@ function finishAct(){
       S.customers=S.customers.filter(c=>c.id!==C.id);
       S.msg=`${C.name}買了「${P.name}」！🏗️`;gong();confetti();
       openM(`<div class="big">🏗️</div><h3>預售屋成交！</h3><p>${C.name}買下「${P.name}」一戶，總價 ${price} 萬</p>
-        <ul class="events"><li>🚗 帶看獎金 +500 元</li><li>💰 代銷成交獎金 +${fmt(comm)} 元${P.boost?'（本週加碼 1.5 倍）':''}</li><li>⭐ 口碑 +3</li><li>🏢 「${P.name}」剩下 ${P.units} 戶</li></ul>
+        <ul class="events"><li>🚗 帶看獎金 +500 元</li><li>💰 代銷成交獎金 +${fmt(comm)} 元${P.boost?'（本週加碼 1.5 倍）':''}</li><li>⭐ 口碑上升</li><li>🏢 「${P.name}」剩下 ${P.units} 戶</li></ul>
         <button class="btn" data-a="close">太好了！</button>`);
       render();return;
     }
@@ -1193,7 +1204,7 @@ function startViewModal(id,cid){
 }
 function answer(h){
   const L=find(V.id);
-  if(h){S.rep+=2;V.intro='客人點點頭：「你講話很實在耶。」⭐ 口碑 +2'}
+  if(h){S.rep+=2;V.intro='客人點點頭：「你講話很實在耶。」⭐ 口碑上升'}
   else{V.bonus=.03;V.joke=true;V.intro='「哈哈～這附近生活機能超好啦！」客人好像被你說服了。'}
   V.ask=askPrice(L);
   V.min=clamp(rnd(.86,.95)-(L.good?.03:0)-.02*known(L).length,.8,.97);
@@ -1269,7 +1280,7 @@ function pkPlay(k){
   else if(k==='gift'){const a=pkMove('b',.3),b=pkMove('s',.12);t=a||b?'屋主答應送冷氣跟家具，雙方都覺得划算一點了。':'雙方都說不能再讓了…'}
   else if(k==='push'){if(Math.random()<.5){V.bp--;pkMove('b',.2);t=`${C.name}覺得被逼太緊，有點不開心 😒`}else t=pkMove('b',.7)?`${C.name}一咬牙：「好，我再加！」`:bNo}
   else if(k==='split'){const a=pkMove('s',.5),b=pkMove('b',.5);t=a||b?'你請雙方各退一步，兩邊都讓了。':'雙方都說已經讓到底了…'}
-  if(V.sp<=0){S.rep-=2;endNego('😤 屋主氣到不想賣了：「不談了！」<br>斡旋失敗，斡旋金退還給客人。<br>⭐ 口碑 -2',false);return}
+  if(V.sp<=0){S.rep-=2;endNego('😤 屋主氣到不想賣了：「不談了！」<br>斡旋失敗，斡旋金退還給客人。<br>⭐ 口碑下降',false);return}
   if(V.bp<=0){S.customers=S.customers.filter(c=>c.id!==V.cid);endNego(`😒 ${C.name}：「算了，我不買了。」<br>斡旋金退還，客人跑掉了。`,false);return}
   if(V.b>=V.s){deal(L,Math.round((V.b+V.s)/2)/V.ask);return}
   if(pkKeys().every(x=>V.used[x])){endNego(`招數都用完了，雙方還差 ${V.s-V.b} 萬，談不攏…<br>斡旋金退還，${C.name}說會再看看別的物件。`,false);return}
@@ -1282,12 +1293,12 @@ function deal(L,r){
   S.money+=comm;S.week+=comm;S.total+=comm;S.deals++;S.rep+=gain;
   S.customers=S.customers.filter(c=>c.id!==V.cid);
   S.listings=S.listings.filter(x=>x.id!==L.id);
-  const lines=[`🎉 成交！「${L.name}」賣了 ${price} 萬`,`💰 獎金 +${fmt(comm)} 元${L.excl?'（專任約多兩成）':`（搶在${L.rivalName}之前賣掉了！）`}`,`⭐ 口碑 +${gain}${kn.length?'（誠實告知問題，客人很感謝你）':''}`];
+  const lines=[`🎉 成交！「${L.name}」賣了 ${price} 萬`,`💰 獎金 +${fmt(comm)} 元${L.excl?'（專任約多兩成）':`（搶在${L.rivalName}之前賣掉了！）`}`,`⭐ 口碑上升${kn.length?'（誠實告知問題，客人很感謝你）':''}`];
   if(hd.length){
     if(Math.random()<Math.min(.85,.45+.2*hd.length)){S.money-=comm;S.week-=comm;S.total-=comm;S.rep-=20;
-      lines.push(`😱 過了幾天，買方發現這間有${hd.join('、')}的問題！<br>找上門要求賠償，獎金全部賠掉，⭐ 口碑 -20`)}
+      lines.push(`😱 過了幾天，買方發現這間有${hd.join('、')}的問題！<br>找上門要求賠償，獎金全部賠掉，⭐ 口碑大跌`)}
     else lines.push('😅 好險，買方暫時還沒發現房子的問題…');
-  }else if(V.joke&&Math.random()<.25){S.rep-=8;lines.push('😒 買方住進去後，覺得你當初講話不老實，⭐ 口碑 -8')}
+  }else if(V.joke&&Math.random()<.25){S.rep-=8;lines.push('😒 買方住進去後，覺得你當初講話不老實，⭐ 口碑下降')}
   lines.unshift('🤝 斡旋成功！雙方都簽名了');
   gong();confetti();jump();endNego(lines.join('<br>'),true);
 }
@@ -1357,11 +1368,11 @@ function otherCall(type,cc){
   else if(type==='owner'){S.msg='有屋主打來想委託！';
     openM(`<div class="big">🏠</div><h3>屋主來電</h3><p>「你好，我有間房子想賣，可以來我家談談嗎？」</p>${btn('callowner','好！馬上過去')}`)}
   else if(type==='complain'){const nm=pick(CNAMES),it=pick(['馬桶破了','熱水器壞了','冷氣不冷','浴室天花板在滴水']);S.msg=`之前的買方${nm}打來客訴…`;
-    openM(`<div class="big">😤</div><h3>買方回頭找</h3><p>之前的買方${nm}：「${it}！你們要負責！」</p>${btn('cpay','賠 3,000 元，保住口碑',S.money<3000)}${btn('cno','說交屋時都好好的（口碑 -6）')}`)}
+    openM(`<div class="big">😤</div><h3>買方回頭找</h3><p>之前的買方${nm}：「${it}！你們要負責！」</p>${btn('cpay','賠 3,000 元，保住口碑',S.money<3000)}${btn('cno','說交屋時都好好的（口碑會下降）')}`)}
   else if(type==='agency'){const P=S.ps;P.boost=true;S.msg=`代銷說這週「${P.name}」成交獎金加碼！`;
     openM(`<div class="big">🏗️</div><h3>代銷公司來電</h3><p>「這週「${P.name}」要衝業績，帶客人來成交的話，獎金加碼 1.5 倍喔！」</p><p class="small">接待中心在新市鎮，工地對面</p>${btn('close','好！我來找客人')}`)}
   else if(type==='thanks'){const c=cc.cust;c.until=S.day+3;S.customers.push(c);S.rep+=5;S.msg=`之前的買方介紹了${c.name}！`;
-    openM(`<div class="big">😊</div><h3>買方來電道謝</h3><p>「房子住得很開心！我介紹朋友${c.name}給你，他想找${cWant(c)}。」</p><p class="small">⭐ 口碑 +5，多了一位客人</p>${btn('close','太感謝了！')}`)}
+    openM(`<div class="big">😊</div><h3>買方來電道謝</h3><p>「房子住得很開心！我介紹朋友${c.name}給你，他想找${cWant(c)}。」</p><p class="small">⭐ 口碑上升，多了一位客人</p>${btn('close','太感謝了！')}`)}
   render();
 }
 function ring(){
@@ -1386,7 +1397,7 @@ function applyShopView(){
 }
 function drawScreen(){
   if(!W||!W.scr)return;const c=W.scr.c,x=c.getContext('2d');if(!x||!x.fillRect)return;
-  const R0=RANKS[Math.min(S.rank,2)];
+  const R0=rk();
   x.fillStyle='#EEF6FF';x.fillRect(0,0,512,340);
   x.fillStyle='#E8463A';x.fillRect(0,0,512,62);
   x.fillStyle='#FFD447';x.font='600 30px Huninn,"PingFang TC",sans-serif';x.textBaseline='middle';x.fillText('幸福房屋 業務系統',22,32);
@@ -1483,13 +1494,13 @@ function endDay(){
   if(S.scooter){S.money-=60;ev.push('⛽ 機車加油 60 元');if(Math.random()<.06){S.money-=600;ev.push('🚨 機車停在紅線被開罰單 600 元…')}}
   let stB=0;const nr=Math.random();
   if(nr<.15){stB+=2;ev.push('🍙 下班前搶到超商 i 珍食！明天體力 +2')}
-  else if(nr<.27){S.rep+=2;stB-=2;ev.push('🍻 被同事硬拉去喝酒，感情變好 ⭐ +2，但明天體力 -2')}
+  else if(nr<.27){S.rep+=2;stB-=2;ev.push('🍻 被同事硬拉去喝酒，感情變好，⭐ 口碑上升，但明天體力 -2')}
   else if(nr<.37&&S.listings.length){const L=pick(S.listings);L.price+=100;ev.push(`📱 半夜「${L.name}」的屋主傳 LINE：「我要漲價 100 萬啦！」`)}
   else if(nr<.5)ev.push('🌙 平安無事，好好睡了一覺');
   if(!ev.length)ev.push('😌 今天晚上很平靜');
   S.expo*=.7;S.day++;S.st=Math.max(1,S.maxSt+stB);S.time=DAY_START;
   const dEnd=(S.day-2)%7,dNew=(S.day-1)%7;
-  if(dEnd===4)ev.push(`📊 週五結算：這週目前賺了 ${fmt(S.week)} 元，目標 ${fmt(RANKS[Math.min(S.rank,2)].t)} 元。週末還有兩天！`);
+  if(dEnd===4)ev.push(`📊 週五結算：這週目前賺了 ${fmt(S.week)} 元，目標 ${fmt(rk().t)} 元。週末還有兩天！`);
   if(Math.random()<.3){
     if(dEnd<5){const c=newCustomer();S.customers.push(c);ev.push(`💼 下班後 ${c.name} 傳訊息來，想找${cWant(c)}。白天要上班，晚上才有空看屋`)}
     else{const rl=S.listings.filter(l=>!l.excl);if(rl.length){const L=pick(rl);L.rival=Math.min(95,(L.rival||0)+15);ev.push(`🆚 假日${L.rivalName}也出來積極帶看，「${L.name}」的競爭壓力變大了`)}}
@@ -1515,13 +1526,24 @@ function endDay(){
   S.banners=S.banners.map(b=>Math.max(0,b-1));
   if((S.day-1)%7===0){
     ev.push('📅 週日晚上，老蕭幫你打這週的成績…');
-    const R=RANKS[S.rank];
-    if(S.week>=R.t){S.rank++;if(S.rank>=3)S.ended=true;else{const N=RANKS[S.rank];S.maxSt=N.st;S.st=N.st;ev.push(`🎊 本週業績達標！升職成「${N.n}」<br>💪 體力上限變成 ${N.st}，🏠 可以同時負責 ${N.cap} 間物件`)}}
-    else ev.push(`📉 本週業績沒達標（${fmt(S.week)} / ${fmt(R.t)} 元）<br>店長：「下週加油！」`);
+    const R=rk();
+    const made=S.deals-(S.wd0||0);S.wd0=S.deals;
+    if(S.week>=R.t){
+      const last=S.rank>=RANKS.length-1,N=last?null:RANKS[S.rank+1],need=last?END_REQ:N.rq;
+      if(S.rep>=need){
+        if(last)S.ended=true;
+        else{S.rank++;S.maxSt=N.st;S.st=N.st;ev.push(`🎊 本週業績達標，口碑也夠好！升職成「${N.n}」<br>💪 體力上限變成 ${N.st}，🏠 可以同時負責 ${N.cap} 間物件${N.say?'<br>'+N.say:''}`)}
+      }else ev.push(`📈 本週業績達標了！<br>不過老蕭說：「客人還不夠信任你，口碑再好一點才能${last?'開店':'升職'}。誠實告知房子的問題、準時帶看、別漏接電話，口碑就會慢慢起來。」`);
+    }else ev.push(`📉 本週業績沒達標（${fmt(S.week)} / ${fmt(R.t)} 元）<br>店長：「下週加油！」`);
+    S.lowWeeks=made===0?(S.lowWeeks||0)+1:0;
+    if(S.lowWeeks>=3&&!S.ended){
+      S.lowWeeks=0;S.st+=2;const c=newCustomer();S.customers.push(c);
+      ev.push(`🍱 連續三週都沒有成交，老蕭請你吃便當談心：「慢慢來，每個人都有這種時候。」<br>老蕭偷偷教你一招：${pick(['先去按電鈴找屋主，有物件才有東西賣','客人想要的區域和種類對得上，比較好成交','先查凶宅網、調資料，誠實告知問題，口碑會加分','傍晚和週末屋主比較在家，按電鈴比較容易成功'])}<br>🙋 還介紹了一位客人給你：${c.name}（想找${cWant(c)}）<br>💪 明天體力 +2`);
+    }
     S.week=0;
     if(S.ps){S.ps.boost=false;if(S.ps.units<=0){S.ps=newPresale();ev.push(`🏗️ 新建案「${S.ps.name}」開賣！代銷請大家幫忙帶客`)}}
   }
-  if(dNew===0&&!S.ended)evM.unshift(`📋 週一早會：老蕭宣布這週目標是 ${fmt(RANKS[Math.min(S.rank,2)].t)} 元，達標就升職！`);
+  if(dNew===0&&!S.ended)evM.unshift(`📋 週一早會：老蕭宣布這週目標是 ${fmt(rk().t)} 元，達標就升職！`);
   S.msg='早安！新的一天開始了，今天要去哪裡呢？';
   endCall();resetAgent();render();
   if(S.ended){showEnding();return}
@@ -1533,7 +1555,7 @@ function endDay(){
 function showEnding(){
   gong();confetti();
   openM(`<div class="big">🏪</div><h3>開店成功！</h3><p>你從菜鳥一路做到店長，終於開了自己的房仲店！</p>
-    <ul class="events"><li>📅 花了 ${S.day-1} 天</li><li>🤝 成交 ${S.deals} 間</li><li>💰 累積獎金 ${fmt(S.total)} 元</li><li>⭐ 口碑 ${S.rep}</li></ul>
+    <ul class="events"><li>📅 花了 ${S.day-1} 天</li><li>🤝 成交 ${S.deals} 間</li><li>💰 累積獎金 ${fmt(S.total)} 元</li><li>⭐ 口碑 ${repFace()}</li></ul>
     <button class="btn" data-a="restart">再玩一次</button>`);
 }
 const INTRO=[
@@ -1542,7 +1564,7 @@ const INTRO=[
   ['🕹️','走路','手機用左下角搖桿，電腦用 W A S D<br>在畫面上左右拖曳可以轉視角<br>走到東西旁邊，按右下角的按鈕做事'],
   ['📣','找客人','貼傳單、掛紅布條打廣告<br>電話響了記得接起來'],
   ['🏠','賣房子','按電鈴找屋主簽約，查清楚房子的問題<br>再帶客人看、幫忙議價'],
-  ['🏪','升職開店','每週業績達標就升職<br>當上店長再達標，就能開店！']
+  ['🏪','升職開店','每週業績達標、口碑夠好就升職<br>一路升到店長，再達標就能開店！']
 ];
 function intro(n){
   n=+n||0;const [e,t,d]=INTRO[n],last=n===INTRO.length-1;
@@ -1582,8 +1604,8 @@ document.addEventListener('click',e=>{
     pspick:psPick,psgo:()=>{closeM();perform('presale',{cid:+k})},
     signskip:skipSign,signowner:()=>{const L=W.ownerLot;if(L>=0&&S.listings.length<cap()&&freeLots().includes(L))drawCard('公園的阿伯想賣房！',L);else closeM()},
     callowner:()=>{const fl=freeLots();if(fl.length&&S.listings.length<cap())drawCard('屋主打電話來委託！',pick(fl));else{closeM();say('手上物件滿了，只好婉拒…')}},
-    cpay:()=>{S.money-=3000;S.rep+=1;closeM();say('賠了 3,000 元，買方氣消了，還說你很負責 ⭐ +1')},
-    cno:()=>{S.rep-=6;closeM();say('買方很不爽，說要去網路上給負評… ⭐ 口碑 -6')},
+    cpay:()=>{S.money-=3000;S.rep+=1;closeM();say('賠了 3,000 元，買方氣消了，還說你很負責 ⭐ 口碑上升')},
+    cno:()=>{S.rep-=6;closeM();say('買方很不爽，說要去網路上給負評… ⭐ 口碑下降')},
     ride:()=>rideMRT(+k),bigmap:openBigMap,
     status:showStatus,
     menu:showMenu,sview:()=>{S.shopView=k;closeM();applyShopView();say(k==='fp'?'坐在辦公桌前。點電話等客人打來，點螢幕可以查資料、約驗屋。':'看整間店的視角。')},view:()=>{closeM();setView(k)},ctx:()=>doSpot(W.near)
@@ -2558,8 +2580,8 @@ function tick(dt,t){
   if(S.time>=DAY_END&&!W.acting&&!modalOpen()&&!S.ended)endDay();
   if(W.call){
     if(S.time>W.call.until){const ty=W.call.type;endCall();
-      if(ty==='cust'||ty==='owner'){S.rep-=1;say('漏接了一通電話… 不知道是不是客人 😢 ⭐ 口碑 -1')}
-      else if(ty==='complain'){S.rep-=3;say('漏接的是之前的買方，他跑去網路上罵你… ⭐ 口碑 -3')}
+      if(ty==='cust'||ty==='owner'){S.rep-=1;say('漏接了一通電話… 不知道是不是客人 😢 ⭐ 口碑下降')}
+      else if(ty==='complain'){S.rep-=3;say('漏接的是之前的買方，他跑去網路上罵你… ⭐ 口碑下降')}
       else say('漏接了一通電話，應該不重要吧…')}
     else if(!modalOpen()){W.ringT-=dt;if(W.ringT<=0){W.ringT=2.6;ring()}}
   }
@@ -2744,6 +2766,7 @@ S=load();
 if(S&&(S.poles===undefined||S.time===undefined))S=null;
 if(S)S.listings.forEach(L=>{if(!L.flaws){L.flaws=L.flaw?[L.flaw]:[];L.rev=L.revealed&&L.flaw?{[L.flaw]:true}:{}}});
 if(S&&!S.ps)S.ps=newPresale();
+if(S&&S.rv!==2){const mp={0:0,1:2,2:5};S.rank=mp[S.rank]!==undefined?mp[S.rank]:Math.min(S.rank,5);S.maxSt=RANKS[S.rank].st;S.rv=2;S.wd0=S.deals||0;S.lowWeeks=0}
 if(S&&!S.customers){S.customers=[];S.cseq=1;for(let i=0;i<(S.leads||0);i++)S.customers.push(newCustomer());
   S.listings.forEach(L=>{if(L.excl===undefined){L.excl=false;L.rival=0;L.rivalName=pick(RIVALS)}})}
 try{initScene()}catch(e){console.error(e);$('#scene').insertAdjacentHTML('beforeend','<div class="fallback">這台裝置沒辦法顯示 3D 畫面，<br>換個瀏覽器試試看。</div>')}
