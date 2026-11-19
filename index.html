@@ -557,7 +557,7 @@ function playScene(lines,after){
     W.sceneAfter=after||null;
     openM(`<ul class="events">${lines.map(l=>`<li>${l.e} ${l.n}：「${l.t}」</li>`).join('')}</ul><button class="btn" data-a="sceneok">好</button>`);return}
   const ap=W.agent.position;W.sceneSave={x:ap.x,z:ap.z,h:W.h};
-  const steps=lines.map((l,i)=>({seq:1,boss:!!l.boss,emo:l.e,txt:l.t,name:l.n,c:[5.6,1.6,-10.7],l:[4.6,1.1,-7.4],last:i===lines.length-1}));
+  const steps=lines.map((l,i)=>({seq:1,boss:!!l.boss,emo:l.e,txt:l.t,name:l.n,c:[5.6,1.6,-10.7],l:[4.6,1.1,-7.4],last:i===lines.length-1,w:l.w,fx:l.fx,pres:l.pres,cust:l.cust,party:l.party,crowd:l.crowd,sky:l.sky,card:l.card,ride:l.ride}));
   W.tut={i:0,full:'',shown:0,list:steps,own:false,lastLabel:'好',scene:true,after};
   W.creator=null;W.inside=false;W.path=[];W.pending=null;W.acting=null;
   $('#shopui').hidden=true;$('#creator').hidden=true;$('#scene').classList.add('cine');$('#tut').hidden=false;$('#busy').hidden=true;
@@ -883,7 +883,7 @@ function showSeq(T,i){
   demoClean();
   if(!(T.w&&T.w!=='shop'&&runScene(T))){
     W.agent.position.set(4.2,0,-7.5);W.h=Math.PI-.5;W.boss.visible=!!(T.boss||T.pres);W.boss.position.set(5.6,0,-7.5);W.boss.rotation.y=Math.PI+.5;
-    if(T.w==='shop'||T.fx||T.cust){W.demoOn=true;try{const cu=W.leads&&W.leads[0];if(cu){if(!W.demoSave)W.demoSave={x:cu.position.x,y:cu.position.y,z:cu.position.z,r:cu.rotation.y,v:cu.visible};cu.visible=!!T.cust;if(T.cust){cu.position.set(2.9,0,-7.5);cu.rotation.y=Math.PI+.5}}}catch(e){}
+    if(T.w==='shop'||T.fx||T.cust||T.crowd){W.demoOn=true;try{if(T.crowd&&W.leads)W.leads.forEach(g=>{g.visible=true});const cu=W.leads&&W.leads[0];if(cu){if(!W.demoSave)W.demoSave={x:cu.position.x,y:cu.position.y,z:cu.position.z,r:cu.rotation.y,v:cu.visible};cu.visible=!!T.cust;if(T.cust){cu.position.set(2.9,0,-7.5);cu.rotation.y=Math.PI+.5}}}catch(e){}
       if(T.fx&&T.fx[0])setTimeout(()=>{if(W.tut&&tl()[W.tut.i]===T){demoFx(T.fx[0],T.fx[1]||'');if(T.party)try{confetti()}catch(e){}}},reduced?0:700)}}
   $('#tutTxt').textContent=reduced?T.txt:'';$('#tutDots').innerHTML='';
   $('#tutNext').textContent=T.last?W.tut.lastLabel:'下一步 ▶';
@@ -1907,6 +1907,12 @@ function buildShop(k){
   if((T.ama||0)>=3)lines.push({n:'老屋主阿嬤',e:'👵',t:'少年仔，阿嬤帶紅龜粿來給你，生意興隆喔！'});
   if(T.chen<2&&(T.ama||0)<3)lines.push(N(fameOf(d)>=30?`第三季：有熟客帶朋友來，說是在${SHOPS[d].n}聽說你的。`:'第三季：日子平平淡淡，你慢慢熟悉當老闆的節奏。','🗓️'));
   lines.push(B('我當年也是這樣開始的。這間店，你顧得很好。'));
+  const hi=att>=85;
+  lines[0].fx=['🪧','新招牌'];lines[0].card='🏪 開幕前一天';lines[1].fx=['✨','招牌亮了'];lines[1].sky=1100;lines[2].fx=['✂️','剪綵！'];lines[2].party=1;lines[2].sky=450;
+  lines[3].fx=hi?['🎊','開幕大成功']:['😶','好冷清'];lines[3].crowd=hi;lines[3].pres=!hi;lines[3].sky=450;
+  lines[4].fx=['🗓️','第一季'];lines[4].crowd=S.rep>=80;lines[4].sky=450;
+  lines[5].fx=T.rv===3?['💐','阿傑的花籃']:['🆚','對街開分店'];lines[5].sky=450;
+  lines[lines.length-1].pres=true;lines[lines.length-1].fx=['🏪','交給你了'];lines[lines.length-1].sky=1020;
   playScene(lines,finishYear);
 }
 function pickEnding(){
@@ -1931,7 +1937,18 @@ const ENDINGS={
   old:{e:'🏮',t:'老街之光',x:'你賣了一間又一間的老街房子，招牌變成老街的打卡景點，連觀光客都來問：「這間就是那個老街之光嗎？」'},
   river:{e:'🌊',t:'河濱豪宅專家',x:'河濱區的買賣幾乎都找你。你站在河邊看著夕陽，覺得這個「蛋殼區」也有自己的浪漫。'},
   newtown:{e:'🏗️',t:'新市鎮開發王',x:'新市鎮的成交一筆接一筆，你開了第二間分店。老蕭看著新招牌說：「這下我真的可以退休了。」'}};
-function finishYear(){S.ending={key:pickEnding()};S.ended=true;S.shopOpened=true;S.opening=3;save();showEnding2()}
+const ENDB={topshop:'青出於藍…我可以安心退休囉。',cozy:'店小沒關係，街坊都信你，這比什麼都重要。',steady:'穩穩的，最好。很多人需要你這樣的房仲。',small:'開心最重要。房租的事，我們慢慢想辦法。',news:'錢賺得到，口碑要顧啊。下次別這樣了。',empty:'慢慢來，我每天都會來陪你。客人會來的。',ghost:'…你這招牌，我真不知道該哭還是該笑。',presale:'連建商都找上門了，你比我厲害。',old:'老街有你，真好。',river:'夕陽真美，你的店也是。',newtown:'第二間分店都開了，這下我真的可以退休了。'};
+const ENDS={topshop:{crowd:1,fx:['💐','大花籃'],party:1},cozy:{crowd:1,fx:['☕','街坊來聊天']},steady:{crowd:1,fx:['👍','口碑穩']},small:{fx:['🧾','算房租']},news:{fx:['📰','上了新聞']},empty:{pres:1,fx:['🕸️','好安靜']},ghost:{crowd:1,fx:['📸','搞笑傳說']},presale:{w:'presale',fx:['🏙️','建商找上門']},old:{crowd:1,fx:['🏮','老街打卡點']},river:{fx:['🌊','河濱夕陽']},newtown:{crowd:1,fx:['🏗️','第二間分店']}};
+function finishYear(){S.ending={key:pickEnding()};S.ended=true;S.shopOpened=true;S.opening=3;save();playEnding()}
+function playEnding(){
+  const K=S.ending.key,E=ENDINGS[K],sh=S.shop;
+  playScene([
+    {n:'旁白',e:'🗓️',t:`一年過去了。「${sh.name}」已經是${DIST[sh.d].n}一道熟悉的風景。`,fx:['🗓️','一年後'],sky:1020,card:'🗓️ 一年後…'},
+    {n:'旁白',e:E.e,t:E.x,sky:1020,...ENDS[K]},
+    {n:'老蕭',e:'👴',boss:true,t:ENDB[K],sky:1020},
+    {n:'旁白',e:E.e,t:`結局：${E.t}`,fx:[E.e,E.t],party:1,crowd:1,sky:1020}
+  ],showEnding2);
+}
 function showEnding2(){
   gong();confetti();const E=ENDINGS[S.ending.key],sh=S.shop;
   openM(`<div class="big">${E.e}</div><h3>${E.t}</h3><p>${E.x}</p>
