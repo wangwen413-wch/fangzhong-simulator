@@ -836,7 +836,7 @@ function demoVis(idx,arrived){
   }catch(e){}
 }
 function demoClean(){
-  if(!W.demoOn)return;W.demoOn=false;W.tutW=null;clearTimeout(W.dfxT);const d=$('#dfx');if(d)d.hidden=true;
+  if(!W.demoOn)return;W.demoOn=false;W.tutW=null;W.rideCine=false;clearTimeout(W.dfxT);const d=$('#dfx');if(d)d.hidden=true;
   try{const cu=W.leads&&W.leads[0],sv=W.demoSave;if(cu&&sv){cu.position.set(sv.x,sv.y,sv.z);cu.rotation.y=sv.r;cu.visible=sv.v}W.demoSave=null;syncScene()}catch(e){}
 }
 function runDemo(T){
@@ -880,7 +880,11 @@ function showSeq(T,i){
   $('#scene').classList.remove('tutjoy','tutkeys');
   $('#tut .tut-body b').textContent=T.name;$('#tut .tut-skip').textContent='看文字摘要';
   setAva(T.boss?null:T.emo);
-  W.agent.position.set(4.2,0,-7.5);W.h=Math.PI-.5;W.boss.visible=!!T.boss;W.boss.position.set(5.6,0,-7.5);W.boss.rotation.y=Math.PI+.5;
+  demoClean();
+  if(!(T.w&&T.w!=='shop'&&runScene(T))){
+    W.agent.position.set(4.2,0,-7.5);W.h=Math.PI-.5;W.boss.visible=!!(T.boss||T.pres);W.boss.position.set(5.6,0,-7.5);W.boss.rotation.y=Math.PI+.5;
+    if(T.w==='shop'||T.fx||T.cust){W.demoOn=true;try{const cu=W.leads&&W.leads[0];if(cu){if(!W.demoSave)W.demoSave={x:cu.position.x,y:cu.position.y,z:cu.position.z,r:cu.rotation.y,v:cu.visible};cu.visible=!!T.cust;if(T.cust){cu.position.set(2.9,0,-7.5);cu.rotation.y=Math.PI+.5}}}catch(e){}
+      if(T.fx&&T.fx[0])setTimeout(()=>{if(W.tut&&tl()[W.tut.i]===T){demoFx(T.fx[0],T.fx[1]||'');if(T.party)try{confetti()}catch(e){}}},reduced?0:700)}}
   $('#tutTxt').textContent=reduced?T.txt:'';$('#tutDots').innerHTML='';
   $('#tutNext').textContent=T.last?W.tut.lastLabel:'下一步 ▶';
 }
@@ -891,15 +895,69 @@ function dayModalHtml(dEnd,dNew,ev0,evM0,own){
     ${evM.length?`<h3 style="font-size:18px;margin-top:12px">☀️ 第 ${S.day} 天（週${DNAME[dNew]}）早上</h3><ul class="events">${evM.map(e=>`<li>${e}</li>`).join('')}</ul>`:''}
     <button class="btn" data-a="${own?'owner':'close'}">${own?'看看是什麼物件':'出門賣房去！'}</button>`;
 }
+const SCN_MARK={store:[-11.2,5.4],moto:[-4.6,0],presale:[23.2,-9],pole:null};
+function evWhere(t){
+  const T=t.replace(/<[^>]+>/g,'');
+  const R=(re,o)=>re.test(T)?o:null;
+  return R(/i 珍食|珍食/,{w:'store',fx:['🍙','搶到 i 珍食！']})
+   ||R(/喝酒/,{w:'store',cust:1,fx:['🍻','乾杯！']})
+   ||R(/紅線|罰單/,{w:'moto',ride:1,fx:['🚨','被開罰單']})
+   ||R(/加油/,{w:'moto',ride:1,fx:['⛽','加油 60 元']})
+   ||R(/清潔隊/,{w:'pole',fx:['🧹','傳單被清掉了']})
+   ||R(/完銷|新建案/,{w:'presale',fx:['🏗️','']})
+   ||R(/升職成/,{w:'shop',pres:1,fx:['🎊','升職！'],party:1})
+   ||R(/本週業績達標|沒達標|第一週結束|打這週的成績/,{w:'shop',pres:1,fx:['📊','週結算']})
+   ||R(/週五結算/,{w:'shop',fx:['📊','週五結算']})
+   ||R(/便當談心/,{w:'shop',pres:1,fx:['🍱','老蕭請吃便當']})
+   ||R(/店長請大家喝咖啡/,{w:'shop',pres:1,fx:['☕','咖啡時間']})
+   ||R(/點名/,{w:'shop',pres:1,fx:['📋','被點名']})
+   ||R(/鬧鐘/,{w:'shop',fx:['⏰','睡過頭了！']})
+   ||R(/颱風/,{w:'shop',fx:['🌀','颱風假']})
+   ||R(/塞車/,{w:'shop',fx:['🚗','塞車']})
+   ||R(/屋主拿著權狀|屋主看到廣告/,{w:'shop',cust:1,fx:['🏠','屋主上門']})
+   ||R(/門口等|一家人/,{w:'shop',cust:1,fx:['🙋','客人上門']})
+   ||R(/家長來電|傳訊息|屋主傳 LINE/,{w:'shop',fx:['📱','叮咚！']})
+   ||R(/等太久|去別家/,{w:'shop',fx:['🚶','客人走了']})
+   ||R(/家人反對/,{w:'shop',fx:['🕊️','客人反悔']})
+   ||R(/聽說.*聊|大家都說/,{w:'shop',fx:['🗣️','名聲傳開了']})
+   ||R(/驗屋報告/,{w:'shop',fx:['📋','驗屋報告']})
+   ||R(/假日.*也/,{w:'shop',fx:['🆚','對手出動']})
+   ||R(/平安無事|很平靜/,{w:'shop',fx:['💤','']})
+   ||null;
+}
+function scenePose(w){
+  const sp=ty=>W.spots&&W.spots.find(s=>s.type===ty);
+  const poleP=()=>{const s=W.spots&&W.spots.find(s=>s.type==='pole'&&s.i===4);return s?{a:s.app,m:[POLES[4][0],POLES[4][1]]}:null};
+  let a,m;
+  if(w==='pole'){const q=poleP();if(!q)return null;a=q.a;m=q.m}
+  else{const s=sp(w),mk=SCN_MARK[w];if(!s||!mk)return null;a=s.app;m=mk}
+  let dx=m[0]-a.x,dz=m[1]-a.z;const d=Math.hypot(dx,dz)||1;dx/=d;dz/=d;
+  const D=4.2,px=-dz,pz=dx;
+  return{ag:[a.x,a.z],st:[a.x-dx*3.2,a.z-dz*3.2],bs:[a.x+px*1.05,a.z+pz*1.05],cu:[a.x-px*1.05,a.z-pz*1.05],face:Math.atan2(dx,dz),
+    c:[a.x-dx*D-px*2.4,2.6,a.z-dz*D-pz*2.4],l:[a.x+dx*.5-px*.1,.9,a.z+dz*.5-pz*.1]};
+}
+function runScene(T){
+  const pose=scenePose(T.w);if(!pose)return false;
+  W.demoOn=true;W.tutW=null;
+  T.c=pose.c;T.l=pose.l;
+  W.agent.position.set(pose.st[0],0,pose.st[1]);W.h=pose.face;
+  const bv=!!(T.boss||T.pres);W.boss.visible=bv;if(bv){W.boss.position.set(pose.bs[0],0,pose.bs[1]);W.boss.rotation.y=pose.face}
+  W.rideCine=!!T.ride;try{const cu=W.leads&&W.leads[0];if(cu){if(!W.demoSave)W.demoSave={x:cu.position.x,y:cu.position.y,z:cu.position.z,r:cu.rotation.y,v:cu.visible};cu.visible=!!T.cust;if(T.cust){cu.position.set(pose.cu[0],0,pose.cu[1]);cu.rotation.y=pose.face}}}catch(e){}
+  W.camSnap=true;
+  const fin=()=>{if(T.fx&&T.fx[0])demoFx(T.fx[0],T.fx[1]||'');if(T.party)try{confetti()}catch(e){}};
+  if(reduced){W.agent.position.set(pose.ag[0],0,pose.ag[1]);fin()}
+  else W.tutW={ag:pose.ag,bs:bv?pose.bs:null,face:pose.face,fx:fin};
+  return true;
+}
 function startDayCine(dEnd,dNew,ev,evM,own){
   if(!W||!W.boss||W.noCine||!W.agent.position||typeof W.agent.position.set!=='function'){openM(dayModalHtml(dEnd,dNew,ev,evM,own));return}
   const nm1=`🌙 第 ${S.day-1} 天（週${DNAME[dEnd]}）下班`,nm2=`☀️ 第 ${S.day} 天（週${DNAME[dNew]}）早上`;
   const mk=(e,night)=>{const q=e.match(/^@([^|]*)\|([^|]*)\|([\s\S]*)$/);
-    if(q)return{seq:1,boss:q[1]==='老蕭',emo:q[2],txt:q[3],name:q[1],sky:night?1260:450,c:night?[6.2,1.6,-10.7]:[3.4,1.6,-10.7],l:night?[4.6,1.1,-7.4]:[5,1.1,-7.4]};
+    if(q)return{seq:1,boss:q[1]==='老蕭',w:q[1]==='老蕭'?'shop':null,emo:q[2],txt:q[3],name:q[1],sky:night?1260:450,c:night?[6.2,1.6,-10.7]:[3.4,1.6,-10.7],l:night?[4.6,1.1,-7.4]:[5,1.1,-7.4]};
     const m=e.match(/^((?:\p{Extended_Pictographic}|\uFE0F|\u200d)+)\s*([\s\S]*)$/u);
     const emo=m?m[1]:(night?'🌙':'☀️'),txt=(m?m[2]:e).replace(/<br\s*\/?>/g,'\n').replace(/<[^>]+>/g,'').trim();
     const boss=/店長|老蕭/.test(txt);
-    return{seq:1,boss,emo,txt,name:boss?'店長・老蕭':(night?'下班後':'早上'),sky:night?1260:450,c:night?[6.2,1.6,-10.7]:[3.4,1.6,-10.7],l:night?[4.6,1.1,-7.4]:[5,1.1,-7.4]}};
+    return{seq:1,boss,...(evWhere(txt)||{}),emo,txt,name:boss?'店長・老蕭':(night?'下班後':'早上'),sky:night?1260:450,c:night?[6.2,1.6,-10.7]:[3.4,1.6,-10.7],l:night?[4.6,1.1,-7.4]:[5,1.1,-7.4]}};
   const steps=[...ev.map(e=>mk(e,true)),...(evM.length?evM:['☀️ 新的一天開始了，今天要去哪裡呢？']).map(e=>mk(e,false))];
   if(!steps.some(x=>x.sky===1260))steps.unshift(mk('🌙 辛苦了，下班囉。',true));
   const mi=steps.findIndex(x=>x.sky===450);steps[0].card=nm1;steps[mi].card=nm2;steps[steps.length-1].last=true;
@@ -908,7 +966,7 @@ function startDayCine(dEnd,dNew,ev,evM,own){
   $('#shopui').hidden=true;$('#creator').hidden=true;$('#scene').classList.add('cine');$('#tut').hidden=false;$('#busy').hidden=true;
   W.agent.visible=true;W.camSnap=true;goTut(0);
 }
-function leaveSeq(keep){const sv=W.sceneSave;W.skyOv=null;setAva(null);$('#tut .tut-body b').textContent='店長・老蕭';$('#tut .tut-skip').textContent='略過教學';
+function leaveSeq(keep){demoClean();const sv=W.sceneSave;W.skyOv=null;setAva(null);$('#tut .tut-body b').textContent='店長・老蕭';$('#tut .tut-skip').textContent='略過教學';
   $('#scene').classList.remove('tutjoy','tutkeys');W.tut=null;W.boss.visible=false;$('#tut').hidden=true;$('#fade').hidden=true;$('#fade').classList.remove('on');$('#scene').classList.remove('cine');
   if(keep&&sv){W.agent.position.set(sv.x,0,sv.z);W.h=sv.h;W.inside=false;W.camSnap=true;save();render()}else{W.sceneSave=null;resetAgent();W.camSnap=true;save();render()}}
 function endSeq(){const T=W.tut,own=T&&T.own;if(T&&T.scene){const a=T.after;leaveSeq(true);if(a)a();return}leaveSeq();if(own)drawCard('屋主主動上門！',W.ownerLot)}
@@ -3062,7 +3120,7 @@ function tick(dt,t){
   applyTime(W.skyOv!=null?W.skyOv:S.time);
   // 鏡頭
   const cam=W.cam;
-  W.ride.visible=!!S.scooter&&!W.inside&&!W.creator&&!W.tut;
+  W.ride.visible=W.tut?!!W.rideCine:(!!S.scooter&&!W.inside&&!W.creator);
   if(W.signFP&&W.acting){
     const sp0=W.spots.find(q=>q.type==='corner'&&q.i===W.signFP.i),ap=sp0.app,pr=projRoad(ap);
     let fx=pr.x-ap.x,fz=pr.z-ap.z;const fl=Math.hypot(fx,fz)||1;fx/=fl;fz/=fl;const lx=-fz,lz=fx;
