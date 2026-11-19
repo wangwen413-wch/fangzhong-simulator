@@ -2757,6 +2757,7 @@ function initScene(){
   rival.position.set(8,0,-10);
 
   // 店內
+  let W_bossIn=null;
   const IX=100,IZ=0,inn=new THREE.Group();inn.position.set(IX,0,IZ);sc.add(inn);
   const floor=add(B(7,.2,6),0xe9d3b5,0,-.1,0,inn);floor.castShadow=false;
   add(B(7,3.2,.2),0xfff4e6,0,1.6,-3,inn);
@@ -2779,15 +2780,34 @@ function initScene(){
   const board=add(B(2.8,1.5,.06),0xffffff,.9,1.85,-2.86,inn);
   add(B(2.8,.22,.07),0xffd447,.9,2.68,-2.85,inn);
   const papers=[];for(let i=0;i<4;i++){const pp=new THREE.Mesh(new THREE.PlaneGeometry(.55,.7),saleMat);pp.position.set(.9-1.02+i*.68,1.75,-2.79);inn.add(pp);papers.push(pp)}
-  add(new THREE.CylinderGeometry(.22,.18,.45,14),0xd9a066,2.8,.22,-2.3,inn);
-  add(new THREE.SphereGeometry(.45,16,12),0x5cbf7a,2.8,.75,-2.3,inn);
+  add(new THREE.CylinderGeometry(.22,.18,.45,14),0xd9a066,3.0,.22,2.1,inn);
+  add(new THREE.SphereGeometry(.45,16,12),0x5cbf7a,3.0,.75,2.1,inn);
   add(B(.4,1.1,.4),0xe3f0ff,-2.9,.55,-2.4,inn);
   add(new THREE.CylinderGeometry(.16,.16,.4,14),0x8fc9ff,-2.9,1.3,-2.4,inn);
 
+  // ===== 店裡佈置：地毯、老蕭的辦公桌、客人沙發、時鐘、檔案櫃、海報 =====
+  {const rug=add(new THREE.CylinderGeometry(1.9,1.9,.03,36),0xe9a98a,0,.015,.9,inn);rug.scale.z=.62;rug.castShadow=false;
+   add(B(1.7,.1,.85,.03),0xc98b5a,2.3,.8,-1.5,inn);
+   add(B(1.6,.7,.08,.02),0xb07548,2.3,.4,-1.1,inn);
+   const np=new THREE.Mesh(new THREE.PlaneGeometry(.5,.16),new THREE.MeshBasicMaterial({map:textTex('店長','#FFD447','#7a1f16',128,40)}));np.position.set(2.3,.55,-1.055);inn.add(np);
+   {const mo=add(B(.5,.34,.05,.02),0x2b3340,2.85,1.1,-1.5,inn);mo.rotation.y=-.5;add(B(.07,.16,.07,.02),0x2b3340,2.85,.93,-1.5,inn)}
+   add(B(.34,.03,.44,.01),0xffffff,2.65,.865,-1.4,inn).rotation.y=-.2;
+   add(new THREE.CylinderGeometry(.07,.06,.14,14),0xfff4e6,2.9,.93,-1.3,inn);
+   add(B(.5,.08,.5,.02),0x7a3b2e,2.3,.45,-2.45,inn);
+   add(B(.7,.5,.1,.03),0x7a3b2e,2.3,.8,-2.72,inn);
+   add(B(1.7,.07,.5,.02),0x7aa6c2,-2.25,.32,2.05,inn);add(B(1.7,.5,.12,.04),0x6a96b2,-2.25,.62,2.3,inn);add(B(.12,.4,.5,.03),0x6a96b2,-3.05,.45,2.05,inn);add(B(.12,.4,.5,.03),0x6a96b2,-1.45,.45,2.05,inn);
+   add(new THREE.CylinderGeometry(.45,.45,.06,20),0xd8b48a,-2.25,.32,.95,inn);add(new THREE.CylinderGeometry(.06,.06,.3,10),0x8a6a4a,-2.25,.15,.95,inn);
+   add(new THREE.CylinderGeometry(.07,.06,.12,12),0xffffff,-2.35,.41,.95,inn);add(new THREE.CylinderGeometry(.07,.06,.12,12),0xffd447,-2.1,.41,.95,inn);
+   const clk=add(new THREE.CylinderGeometry(.32,.32,.05,28),0xffffff,-1.6,2.25,-2.86,inn);clk.rotation.x=Math.PI/2;
+   const clkR=add(new THREE.TorusGeometry(.32,.035,8,28),0xe8463a,-1.6,2.25,-2.84,inn);clkR.castShadow=false;
+   add(B(.03,.2,.02),0x2b3340,-1.6,2.3,-2.82,inn);add(B(.15,.03,.02),0x2b3340,-1.53,2.25,-2.82,inn);
+   add(B(.75,1.3,.55,.04),0x9aa8b8,-1.5,.65,-2.58,inn);[.25,.65,1.05].forEach(y=>add(B(.6,.03,.02),0x6f7d8e,-1.5,y,-2.29,inn));
+   add(B(.04,.9,.62,.01),0xffd447,-3.37,1.8,1.5,inn);add(B(.03,.7,.44,.01),0xe8463a,-3.34,1.8,1.5,inn);
+   const bi=boss.clone();bi.visible=true;bi.position.set(2.3,0,-2.3);bi.rotation.y=.05;inn.add(bi);W_bossIn=bi}
   W={sway,waterTex,sparkTex,fpHands:fpH,fpPeds,skyU,skyG,sun,moon,stars,hillM,hillM2,cloudMat,boss,agentParts,mk:{add,outline,M},winMats,train,jib,flags,billMat,bill:{c:billC,tex:billTex,key:''},peds,glows,pools,glassMat,signProp,clouds,inClick:[],scr:{c:scrC,tex:scrTex},view:'follow',camYaw:0,joy:{x:0,y:0},rival,rivalPath:[],rivalWait:2,IX,IZ,winPane,phone,papers,inside:false,call:null,ringT:0,camSnap:true,R,sc,cam,hemi,dl,winMat,bulbMat,agent,leads,visitor,flyers,bans:[ban0,ban1],lots,lotSpots,spots,clickables,blocks,
     path:[],pending:null,acting:null,jumpT:0,h:0,fp:false,keys:{},near:null,saveT:0,lastMin:-1};
 
-  W.inClick=[[phone,'phone'],[monitor,'pc'],[screen,'pc']];
+  W.bossIn=W_bossIn;W.inClick=[[phone,'phone'],[monitor,'pc'],[screen,'pc']];
   {const done=new Set();sc.traverse(o=>{if(!o.isMesh)return;(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(!m||done.has(m)||m.isMeshBasicMaterial||!m.color)return;done.add(m);m.color.setHex(gradeHex(m.color.getHex()))})})}
   // 騎機車用的機車
   const ride=new THREE.Group();agent.add(ride);ride.visible=false;
@@ -2966,6 +2986,7 @@ function tick(dt,t){
     else if(!modalOpen()){W.ringT-=dt;if(W.ringT<=0){W.ringT=2.6;ring()}}
   }
   W.phone.rotation.z=W.call&&!reduced?Math.sin(t*40)*.15:0;
+  if(W.bossIn&&W.inside&&!reduced){W.bossIn.position.y=Math.abs(Math.sin(t*1.7))*.02;W.bossIn.rotation.y=Math.sin(t*.45)*.3}
   const m=Math.floor(S.time);if(m!==W.lastMin){W.lastMin=m;$('#clock').innerHTML=clockText()}
   // 移動
   fameWalk();
@@ -3129,8 +3150,28 @@ function drawBill(){
   x.fillStyle='#FFFFFF';x.font='50px Huninn,"Noto Sans TC","PingFang TC",sans-serif';x.fillText(P.units>0?`預售熱銷中・總價 ${P.lo} 萬起`:'恭喜完銷・感謝支持',512,188);
   W.bill.tex.needsUpdate=true;
 }
+function applyGear(){
+  if(!W||!W.agent||!W.mk||!S||!W.agent.add)return;
+  const key=S.rank||0;if(W.gearKey===key)return;W.gearKey=key;
+  const A=W.agent;if(W.gear)A.remove(W.gear);
+  const g=new THREE.Group();A.add(g);W.gear=g;
+  const {add,outline}=W.mk,C=gradeHex,Bx=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
+  const coat=(col,len,rt,rb,y)=>{const m=add(new THREE.CylinderGeometry(rt,rb,len,24,1,true,.55,Math.PI*2-1.1),C(col),0,y,0,g);m.material=m.material.clone();m.material.side=THREE.DoubleSide;return m};
+  const tag=(col)=>{add(Bx(.14,.075,.03),C(0xffffff),-.14,.6,.3,g);add(Bx(.14,.025,.035),C(col),-.14,.64,.3,g)};
+  const cap=()=>{add(new THREE.SphereGeometry(.49,24,16,0,Math.PI*2,0,Math.PI*.46),C(0xffd447),0,1.1,-.02,g);const b=add(Bx(.52,.04,.34),C(0xffd447),0,1.2,.5,g);b.rotation.x=.12};
+  const hat=(col,band,h,rb)=>{add(new THREE.CylinderGeometry(rb*.6,rb*.62,h,24),C(col),0,1.46+h/2,0,g);add(new THREE.CylinderGeometry(rb,rb,.045,28),C(col),0,1.47,0,g);add(new THREE.CylinderGeometry(rb*.63,rb*.63,.07,24),C(band),0,1.5,0,g)};
+  const scarf=()=>{const t=add(new THREE.TorusGeometry(.26,.07,8,22),C(0xe8463a),0,.74,0,g);t.rotation.x=Math.PI/2;add(Bx(.1,.28,.05),C(0xe8463a),.16,.58,.27,g)};
+  const star=(col)=>{const m=add(new THREE.CylinderGeometry(.075,.075,.03,5),C(col),.14,.6,.3,g);m.rotation.x=Math.PI/2};
+  const epaulet=()=>[-1,1].forEach(sd=>add(Bx(.16,.05,.14),C(0xf2c230),sd*.27,.72,0,g));
+  if(key===0){cap();tag(0xe8463a)}
+  else if(key===1){tag(0xe8463a);add(Bx(.1,.1,.03),C(0xffd447),.14,.56,.3,g)}
+  else if(key===2){coat(0x3b4a6b,.42,.27,.34,.5);tag(0x9aa3b0)}
+  else if(key===3){coat(0x6b2f2f,.42,.27,.34,.5);scarf();star(0xf2c230)}
+  else if(key===4){coat(0x3d3d48,.64,.27,.43,.36);tag(0xf2c230);hat(0x4a4a55,0xf2c230,.24,.5)}
+  else{coat(0x7a1f16,.66,.28,.45,.36);epaulet();star(0xf2c230);hat(0x2b2a35,0xf2c230,.34,.46)}
+}
 function syncScene(){
-  if(!W||!S)return;
+  if(!W||!S)return;applyGear();
   drawScreen();drawBill();
   W.bans.forEach((b,i)=>b.visible=S.banners[i]>0);
   W.spots.forEach(s=>{
