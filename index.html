@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="房仲模擬器">
+<meta name="theme-color" content="#D6EEF0">
+<link rel="manifest" href='data:application/manifest+json,{"name":"房仲模擬器","short_name":"房仲模擬器","display":"fullscreen","orientation":"landscape","background_color":"#D6EEF0","theme_color":"#D6EEF0","start_url":"."}'>
 <title>房仲模擬器</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1740,12 +1746,17 @@ function setFS(on){
   $('#game').classList.toggle('fs',on);
   {const ic=$('#fsic');if(ic)ic.setAttribute('d',on?'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5':'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5');const fb=$('#fsbtn');if(fb)fb.setAttribute('aria-label',on?'離開全螢幕':'全螢幕')}
 }
+const IOS=/iPhone|iPod/.test(navigator.userAgent)||(/iPad/.test(navigator.userAgent)&&!document.fullscreenEnabled&&!document.webkitFullscreenEnabled);
+const STANDALONE=!!(navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches));
+function iosTip(){openM(`<h3>📱 iPhone 全螢幕小撇步</h3><p class="small" style="text-align:left;line-height:1.7">iPhone 的瀏覽器（Safari、Chrome）不讓網頁自己變成全螢幕，所以按鈕只能把遊戲放到最大。<br><br>想要完全沒有網址列，請這樣做：<br>1. 點瀏覽器的「分享」按鈕（方框加向上箭頭）<br>2. 選「加入主畫面」<br>3. 之後從主畫面的「房仲模擬器」圖示打開，就是全螢幕了！<br><br>記得先把「存檔碼」複製起來，主畫面版和網頁版的存檔是分開的喔。</p><button class="btn" data-a="close">知道了</button>`)}
+let iosTipShown=false;
 function toggleFS(){
   const g=$('#game'),inFS=document.fullscreenElement||document.webkitFullscreenElement;
   if(inFS){(document.exitFullscreen||document.webkitExitFullscreen).call(document);return}
   if(g.classList.contains('fs')){setFS(false);return}
   const req=g.requestFullscreen||g.webkitRequestFullscreen;
   setFS(true);
+  if(IOS&&!STANDALONE&&!iosTipShown){iosTipShown=true;setTimeout(iosTip,250)}
   if(req){try{const r=req.call(g);if(r&&r.catch)r.catch(()=>{})}catch(e){}}
 }
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{
@@ -2043,7 +2054,7 @@ document.addEventListener('click',e=>{
     lact:()=>{closeM();perform(k,{id})},
     pickc:()=>pickCustomer(id),viewc:()=>{closeM();perform('view',{id,cid:+k})},
     pc:openPC,pcdo:()=>{closeM();perform(k,{})},pcinsp:()=>{closeM();perform('inspbook',{id})},answer:answerCall,back:goBack,leave:leaveShop,sact:()=>perform(k,{}),
-    showL:showListings,showC:showCustomers,music:()=>{toggleMusic();showMenu()},fs:()=>{closeM();toggleFS()},
+    showL:showListings,showC:showCustomers,music:()=>{toggleMusic();showMenu()},fs:()=>{closeM();toggleFS()},iostip:()=>{closeM();iosTip()},
     goto:()=>{const L=find(id);if(!L)return;const fromModal=modalOpen();if(fromModal)closeM();if(W.inside)leaveShop();if(W.view==='fp'){say('第一人稱模式要自己走過去喔，或在選單切回跟隨視角');return}
       if(!fromModal)$('#scene').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});goSpot(W.lotSpots[L.lot])},
     adyes:()=>{S.money-=1500;S.expo+=40;Object.keys(DIST).forEach(k=>addFame(k,3));closeM();say('刊登好了！更多人看到你了 📢')},
@@ -2878,7 +2889,8 @@ function initScene(){
    add(B(.03,.2,.02),0x2b3340,-1.6,2.3,-2.82,inn);add(B(.15,.03,.02),0x2b3340,-1.53,2.25,-2.82,inn);
    add(B(.75,1.3,.55,.04),0x9aa8b8,-1.5,.65,-2.58,inn);[.25,.65,1.05].forEach(y=>add(B(.6,.03,.02),0x6f7d8e,-1.5,y,-2.29,inn));
    add(B(.04,.9,.62,.01),0xffd447,-3.37,1.8,1.5,inn);add(B(.03,.7,.44,.01),0xe8463a,-3.34,1.8,1.5,inn);
-   const bi=boss.clone();bi.visible=true;bi.position.set(2.3,0,-2.3);bi.rotation.y=.05;inn.add(bi);W_bossIn=bi}
+   const bi=boss.clone();bi.visible=true;bi.position.set(2.3,0,-2.3);bi.rotation.y=.05;inn.add(bi);W_bossIn=bi;
+   const tg=new THREE.Mesh(new THREE.PlaneGeometry(.78,.24),new THREE.MeshBasicMaterial({map:textTex('店長 老蕭','#FFD447','#7a1f16',256,80),transparent:true}));tg.position.set(2.3,2.1,-2.2);inn.add(tg)}
   W={sway,waterTex,sparkTex,fpHands:fpH,fpPeds,skyU,skyG,sun,moon,stars,hillM,hillM2,cloudMat,boss,agentParts,mk:{add,outline,M},winMats,train,jib,flags,billMat,bill:{c:billC,tex:billTex,key:''},peds,glows,pools,glassMat,signProp,clouds,inClick:[],scr:{c:scrC,tex:scrTex},view:'follow',camYaw:0,joy:{x:0,y:0},rival,rivalPath:[],rivalWait:2,IX,IZ,winPane,phone,papers,inside:false,call:null,ringT:0,camSnap:true,R,sc,cam,hemi,dl,winMat,bulbMat,agent,leads,visitor,flyers,bans:[ban0,ban1],lots,lotSpots,spots,clickables,blocks,
     path:[],pending:null,acting:null,jumpT:0,h:0,fp:false,keys:{},near:null,saveT:0,lastMin:-1};
 
@@ -2995,6 +3007,7 @@ function showMenu(){
     <div class="seg" style="grid-template-columns:1fr 1fr"><button data-a="sview" data-k="fp" class="${sv==='fp'?'on':''}">👀 坐在桌前</button><button data-a="sview" data-k="top" class="${sv==='top'?'on':''}">🗺️ 看整間店</button></div>
     <button class="btn alt" data-a="music">${S.music===false?'🔇 音樂：關':'🎵 音樂：開'}</button>
     <button class="btn alt" data-a="fs">${fs2?'✕ 離開全螢幕':'⛶ 全螢幕'}</button>
+    ${IOS&&!STANDALONE?'<button class="btn alt" data-a="iostip">📱 iPhone 全螢幕教學</button>':''}
     <button class="btn alt" data-a="restyle">👔 換造型</button>
     <button class="btn alt" data-a="help">📖 看店長教學</button>
     <button class="btn alt" data-a="savecode">💾 存檔碼（換手機用）</button>
@@ -3005,6 +3018,7 @@ function showMenu(){
     <div class="seg"><button data-a="view" data-k="follow" class="${v==='follow'?'on':''}">🧍 跟隨</button><button data-a="view" data-k="top" class="${v==='top'?'on':''}">🗺️ 俯瞰</button><button data-a="view" data-k="fp" class="${v==='fp'?'on':''}">👀 第一人稱</button></div>
     <button class="btn alt" data-a="music">${S.music===false?'🔇 音樂：關':'🎵 音樂：開'}</button>
     <button class="btn alt" data-a="fs">${fs?'✕ 離開全螢幕':'⛶ 全螢幕'}</button>
+    ${IOS&&!STANDALONE?'<button class="btn alt" data-a="iostip">📱 iPhone 全螢幕教學</button>':''}
     <button class="btn alt" data-a="restyle">👔 換造型</button>
     <button class="btn alt" data-a="help">📖 看店長教學</button>
     <button class="btn alt" data-a="savecode">💾 存檔碼（換手機用）</button>
@@ -3176,7 +3190,7 @@ function tick(dt,t){
         const keyI=Math.abs(kx)>Math.abs(ky)?(kx>0?3:1):(ky>0?0:2);document.querySelectorAll('#keys i').forEach((e,k)=>e.classList.toggle('on',k===keyI))}}
   }else if(W.inside){
     if(S.shopView==='top'){cam.position.set(W.IX+3.6,4.6,W.IZ+6.4);cam.lookAt(W.IX-.3,1,W.IZ-1)}
-    else{const sw=reduced?0:Math.sin(t*.6)*.02;cam.position.set(W.IX+sw,1.3+(reduced?0:Math.sin(t*1.3)*.008),W.IZ+.5);cam.lookAt(W.IX-.08+sw*2,.95,W.IZ-1.5)}
+    else{const sw=reduced?0:Math.sin(t*.6)*.02;cam.position.set(W.IX+sw,1.3+(reduced?0:Math.sin(t*1.3)*.008),W.IZ+.5);cam.lookAt(W.IX+.55+sw*2,.95,W.IZ-1.5)}
     W.camSnap=true;
   }else if(W.view==='follow'){
     const z=W.zoom||1;let yaw=W.camYaw;let dist=4.4*z;
