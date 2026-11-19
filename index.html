@@ -52,6 +52,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .scene canvas{display:block;width:100%;height:100%;touch-action:none}
 .hud{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;z-index:2;pointer-events:none}
 .hud>*{pointer-events:auto}
+.hud-r{display:flex;gap:8px}
 .chip{background:rgba(255,255,255,.9);color:#243044;border-radius:14px;padding:4px 11px;box-shadow:0 3px 0 rgba(0,0,0,.16);font-size:13px;line-height:1.3}
 .chip b{display:block;font-size:22px;font-weight:400}
 .fpbtn{border:none;font-size:14px;padding:8px 11px}
@@ -219,7 +220,7 @@ h2{font-size:18px;font-weight:400;margin:22px 0 10px}
 .pickc{text-align:left}
 .pickc .tags{margin:4px 0 0}
 .pk{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;margin:8px 0}
-.pk .side{background:var(--line);border-radius:16px;padding:8px 4px;font-size:14px}
+.pk .pside{background:var(--line);border-radius:16px;padding:8px 4px;font-size:14px}
 .pk .av{font-size:34px;line-height:1.1}
 .pk .pr{font-size:21px;color:var(--red)}
 .pk .vs{font-size:24px;color:var(--red);text-shadow:0 2px 0 var(--yellow)}
@@ -333,7 +334,7 @@ body{background:var(--bg);color:var(--ink)}
 .bar{background:var(--tan)}
 .bar .g{background:var(--green)}.bar .r{background:var(--red)}
 /* 議價 PK */
-.pk .side{background:var(--tan)}
+.pk .pside{background:var(--tan)}
 .pk .pr,.pk .vs{color:var(--red)}
 .pk .vs{text-shadow:2px 2px 0 var(--yellow);font-family:var(--head);font-weight:900}
 .track{background:var(--tan)}
@@ -449,7 +450,7 @@ body{background:var(--bg);color:var(--ink)}
         <button class="rbtn" data-a="showC" aria-label="客人"><svg class="si" aria-hidden="true"><use href="#i-user"/></svg><i id="nC"></i></button>
         <button class="rbtn mob-only" data-a="status" aria-label="我的狀態"><svg class="si" aria-hidden="true"><use href="#i-chart"/></svg></button>
       </div>
-      <button class="rbtn" data-a="menu" aria-label="選單"><svg class="si" aria-hidden="true"><use href="#i-menu"/></svg></button>
+      <div class="hud-r"><button class="rbtn" data-a="fs" id="fsbtn" aria-label="全螢幕"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path id="fsic" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button><button class="rbtn" data-a="menu" aria-label="選單"><svg class="si" aria-hidden="true"><use href="#i-menu"/></svg></button></div>
     </div>
     <div class="feed" id="say" aria-live="polite"></div>
     <div class="guide" id="guide" hidden><b>👴 老蕭</b>：<span id="guideTxt"></span><button class="gs" data-a="guideskip">略過新手引導</button></div>
@@ -1205,7 +1206,7 @@ function render(){
     '<div class="empty">還沒有物件。點地圖上有 🚪 的住家按電鈴，問問看有沒有人想賣房子。</div>';
   $('#custs').innerHTML=S.customers.length?S.customers.map(c=>{const left=c.until-S.day;
     return `<div class="cust clay ${left<=1?'soon':''}"><div class="row" style="margin:0"><span>🙋 ${c.name}${c.seg?'・'+c.seg:''}</span><span class="small">${left<=0?'今天最後一天':`還會等 ${left} 天`}</span></div>
-    <div class="small">想找：${cWant(c)}，預算大約 ${fmt(c.budget)} 萬</div></div>`}).join(''):
+    <div class="small">想找：${cWant(c)}，預算大約 ${fmt(c.budget)} 萬</div>${treatBtns(c)}</div>`}).join(''):
     '<div class="empty">還沒有客人。打廣告讓電話響起來，接起電話客人就會記在這裡。</div>';
   syncScene();
   save();
@@ -1385,11 +1386,24 @@ function showListings(){
     ${S.listings.length?S.listings.map(lhtml).join('').replace(/class="listing clay/g,'style="text-align:left" class="listing clay'):'<p class="small">還沒有物件，去按電鈴找屋主吧！</p>'}
     <button class="btn alt" data-a="close">關閉</button>`);
 }
+const TREAT={drink:{p:50,d:2,e:'🧋',n:'飲料'},bento:{p:120,d:4,e:'🍱',n:'便當'}};
+const treatBtns=c=>{const f=c.fed||{};return `<div class="lbtns" style="margin-top:6px">${['drink','bento'].map(k=>{const T=TREAT[k];return `<button data-a="treat" data-id="${c.id}" data-k="${k}" ${f[k]?'disabled':''}>${T.e} 請${k==='drink'?'喝飲料':'吃便當'} ${T.p} 元${f[k]?'（已請過）':`・多等 ${T.d} 天`}</button>`}).join('')}</div>`};
+function treat(id,k){
+  const c=S.customers.find(x=>x.id===id),T=TREAT[k];if(!c||!T)return;
+  c.fed=c.fed||{};
+  if(c.fed[k]){say(`已經請${c.name}吃過${T.n}了`);return}
+  if(S.money<T.p){say(`錢不夠了，${T.n}要 ${T.p} 元`);return}
+  S.money-=T.p;c.fed[k]=1;c.until+=T.d;
+  const m=modalOpen();
+  say(`${T.e} 請${c.name}${k==='drink'?'喝了飲料':'吃了便當'}，${c.name}笑著說可以再等你 ${T.d} 天（花了 ${T.p} 元）`);
+  if(m)showCustomers();
+}
 function showCustomers(){
   openM(`<h3>🙋 客人名單（${S.customers.length}）</h3>
     ${S.customers.length?S.customers.map(c=>{const left=c.until-S.day,b=bestFor(c);
       return `<div class="cust clay ${left<=1?'soon':''}" style="text-align:left"><div class="row" style="margin:0"><span>🙋 ${c.name}${c.seg?'・'+c.seg:''}</span><span class="small">${left<=0?'今天最後一天':`還會等 ${left} 天`}</span></div>
       <div class="small">想找：${cWant(c)}，預算大約 ${fmt(c.budget)} 萬</div>
+      ${treatBtns(c)}
       ${b?`<div class="small" style="margin-top:4px">最適合：${b.L.name}（${askPrice(b.L)} 萬）</div><div class="tags">${b.m.tags}</div>
         <div class="lbtns"><button data-a="goto" data-id="${b.L.id}">🚶 去這間帶看</button></div>`:'<div class="small" style="margin-top:4px">目前沒有物件可以推薦，也可以帶去預售屋接待中心看看</div>'}</div>`}).join(''):'<p class="small">還沒有客人，打廣告讓電話響起來吧！</p>'}
     <button class="btn alt" data-a="close">關閉</button>`);
@@ -1493,9 +1507,9 @@ function showPK(msg){
     +Object.keys(PK).filter(k=>!V.used[k]).map(k=>`<button data-a="pk" data-k="${k}">${PK[k].n}<small>${PK[k].d}${k==='hot'?(kn?'（房子有問題，很難說服）':rivalHot?'（對手在搶，效果加倍）':''):''}</small></button>`).join('');
   openM(`<h3>⚔️ 斡旋議價 PK</h3>
     <div class="pk">
-      <div class="side"><div class="av">👴</div><div>屋主</div><div class="pr">${V.s} 萬</div><div>${hearts(V.sp)}</div><div class="small">底價大概<br>${V.sLo}～${V.sLo+V.w} 萬</div></div>
+      <div class="pside"><div class="av">👴</div><div>屋主</div><div class="pr">${V.s} 萬</div><div>${hearts(V.sp)}</div><div class="small">底價大概<br>${V.sLo}～${V.sLo+V.w} 萬</div></div>
       <div class="vs">VS<div class="small">還差<br>${Math.max(0,V.s-V.b)} 萬</div></div>
-      <div class="side"><div class="av">🙋</div><div>${C.name}</div><div class="pr">${V.b} 萬</div><div>${hearts(V.bp)}</div><div class="small">預算大概<br>${V.bHint} 萬</div></div>
+      <div class="pside"><div class="av">🙋</div><div>${C.name}</div><div class="pr">${V.b} 萬</div><div>${hearts(V.bp)}</div><div class="small">預算大概<br>${V.bHint} 萬</div></div>
     </div>
     ${kn?`<p class="small" style="color:var(--red)">已知問題：${V.known.map(f=>FLAWS[f].e+f).join('、')}，買方不太願意加價</p>`:''}
     <div class="track"><span class="mk" id="mkb" style="left:${prev.b}%">🙋</span><span class="mk" id="mks" style="left:${prev.s}%">👴</span></div>
@@ -1666,6 +1680,7 @@ function goBack(){
 }
 function setFS(on){
   $('#game').classList.toggle('fs',on);
+  {const ic=$('#fsic');if(ic)ic.setAttribute('d',on?'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5':'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5');const fb=$('#fsbtn');if(fb)fb.setAttribute('aria-label',on?'離開全螢幕':'全螢幕')}
 }
 function toggleFS(){
   const g=$('#game'),inFS=document.fullscreenElement||document.webkitFullscreenElement;
@@ -1957,7 +1972,7 @@ document.addEventListener('click',e=>{
     goto:()=>{const L=find(id);if(!L)return;const fromModal=modalOpen();if(fromModal)closeM();if(W.inside)leaveShop();if(W.view==='fp'){say('第一人稱模式要自己走過去喔，或在選單切回跟隨視角');return}
       if(!fromModal)$('#scene').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});goSpot(W.lotSpots[L.lot])},
     adyes:()=>{S.money-=1500;S.expo+=40;Object.keys(DIST).forEach(k=>addFame(k,3));closeM();say('刊登好了！更多人看到你了 📢')},
-    look:()=>setLook(k),lookdone:finishCreator,tutnext:tutNext,guideskip:()=>{S.gdDone=true;render()},savecode:openCode,copycode:copyCode,loadcode:readCode,codego:applyCode,loan:openLoan,shopsel:()=>openShopName(k),shopname:()=>buildShop(k),contin:()=>{S.ended=false;closeM();save();render()},sceneok:()=>{closeM();const a=W.sceneAfter;W.sceneAfter=null;if(a)a()},tutskip:()=>{if(W.tut&&W.tut.list)skipSeq();else endTutorial()},restyle:()=>{closeM();openCreator(false)},
+    look:()=>setLook(k),lookdone:finishCreator,tutnext:tutNext,guideskip:()=>{S.gdDone=true;render()},treat:()=>treat(id,k),savecode:openCode,copycode:copyCode,loadcode:readCode,codego:applyCode,loan:openLoan,shopsel:()=>openShopName(k),shopname:()=>buildShop(k),contin:()=>{S.ended=false;closeM();save();render()},sceneok:()=>{closeM();const a=W.sceneAfter;W.sceneAfter=null;if(a)a()},tutskip:()=>{if(W.tut&&W.tut.list)skipSeq();else endTutorial()},restyle:()=>{closeM();openCreator(false)},
     buymoto:()=>{if(S.money<20000)return;S.money-=20000;S.scooter=true;closeM();gong();say('買了一台機車！之後在鎮上移動會快很多 🛵')},
     bankgo:()=>{closeM();perform('bank',{cid:+k})},buy:()=>{closeM();perform(k,{})},
     pspick:psPick,psgo:()=>{closeM();perform('presale',{cid:+k})},
@@ -2780,6 +2795,7 @@ function initScene(){
   outline(add(B(.32,.26,.78,.08),gradeHex(0xd93a2f),0,.34,-.02,ride),1.06);
   outline(add(B(.3,.44,.14,.05),gradeHex(0xd93a2f),0,.54,.34,ride),1.06);
   add(new THREE.CylinderGeometry(.02,.02,.5,6),0x5b6475,0,.82,.38,ride).rotation.z=Math.PI/2;
+  W.hills=[];sc.traverse(o=>{if(o.isMesh&&(o.material===hillM||o.material===hillM2))W.hills.push(o)});
   W.ride=ride;applyLook();
   const size=()=>{const w=el.clientWidth||320,h=el.clientHeight||360;R.setSize(w,h,false);cam.aspect=w/h;W.vw=w;W.vh=h;cam.updateProjectionMatrix();W.vo=null};
   size();if(window.ResizeObserver)new ResizeObserver(size).observe(el);else window.addEventListener('resize',size);
@@ -2918,7 +2934,7 @@ function applyTime(min){
   const hs=hor.clone().lerp(top,.25);
   W.winPane.material.color.copy(hs);
   W.sc.fog.color.copy(hor);W.sc.fog.near=W.inside?200:30;W.sc.fog.far=W.inside?300:75;
-  W.clouds.forEach(cl=>{cl.position.x+=.006;if(cl.position.x>64)cl.position.x=-64});W.skyG.visible=!W.inside;
+  W.clouds.forEach(cl=>{cl.position.x+=.006;if(cl.position.x>64)cl.position.x=-64});W.skyG.visible=!W.inside;if(W.hills)W.hills.forEach(h=>{h.visible=!W.inside});
   if(W.inside){W.sc.background.setRGB(.96,.9,.82);W.hemi.intensity=.85;W.dl.intensity=.55}
   else{W.sc.background.copy(hor);W.hemi.intensity=.3+.55*f;W.dl.intensity=.15+.75*f}
   const ang=(clamp(h,7,20)-7)/13*Math.PI;
