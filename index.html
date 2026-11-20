@@ -508,12 +508,12 @@ body{background:var(--bg);color:var(--ink)}
     <div><span class="i">📄</span><span>電線桿：貼傳單<span class="c">體力 2，200 元，花 45 分鐘，可能被罰</span></span></div>
     <div><span class="i">🚩</span><span>舊大樓、工地圍籬：掛紅布條<span class="c">體力 3，800 元，花 1.5 小時，可能被拆</span></span></div>
     <div><span class="i">🪧</span><span>舉牌（體力 4，花 2 小時）：地點和時段不同，遇到的客人也不同<span class="c">💼 捷運站口：上班族，早上 7～9 點、傍晚 5～7 點<br>🎒 校門口：家長、學區房，上學和放學時間，週末沒人<br>🧓 公園：長輩，早上和傍晚，偶爾遇到想賣房的屋主<br>🛒 超市門口：家庭客，下午到傍晚<br>🎧 老街路口：年輕首購族，晚上也有人</span></span></div>
-    <div><span class="i">🏦</span><span>老街區：發大財銀行<span class="c">帶客人做貸款試算，客人的預算會提高</span></span></div>
+    <div><span class="i">🏦</span><span>老街區：發大財銀行<span class="c">帶客人做貸款試算，預算會提高。平日 09:00～15:30 營業</span></span></div>
     <div><span class="i">🛒</span><span>學府區：全贏超市<span class="c">買便當、飲料補體力</span></span></div>
     <div><span class="i">🏪</span><span>老街區：全日便利商店<span class="c">買便當、咖啡補體力</span></span></div>
     <div><span class="i">🚇</span><span>捷運：坪安站、河濱站、新市鎮站<span class="c">一趟 30 元，大約 12 分鐘，跨區移動最快</span></span></div>
     <div><span class="i">🗺️</span><span>右上角小地圖<span class="c">點一下打開大地圖，點地圖上的地方就會自動走過去</span></span></div>
-    <div><span class="i">🛵</span><span>老街區：七匹狼機車行<span class="c">20,000 元買機車，移動快 2.4 倍，每天加油 60 元</span></span></div>
+    <div><span class="i">🛵</span><span>老街區：七匹狼機車行<span class="c">20,000 元買機車，移動快 2.4 倍，約 5 天加一次油，要保養換胎</span></span></div>
     <div><span class="i">🏞️</span><span>河濱區：河濱公園<span class="c">坐長椅休息，體力 +1，一天一次</span></span></div>
     <div><span class="i">🚪</span><span>住家：按電鈴找屋主<span class="c">體力 2，花 1 小時，每戶一天問一次</span></span></div>
     <div><span class="i">🏗️</span><span>新市鎮：預售屋接待中心<span class="c">帶客人來參觀，每組有帶看獎金，成交還有代銷獎金</span></span></div>
@@ -542,8 +542,8 @@ const DAY_START=480,DAY_END=1260,MIN_PER_SEC=5;
 const RANKS=[
   {n:'🐣 菜鳥房仲',t:30000,st:10,cap:4,rq:0,say:''},
   {n:'🐥 正式房仲',t:40000,st:11,cap:4,rq:45,unl:'掛紅布條、舉牌、專任約',say:'老蕭：「簽下專任約的人，才算正式房仲！」'},
-  {n:'🐤 資深房仲',t:55000,st:12,cap:5,rq:50,unl:'打電話約工班驗屋（認識的工班，店裡就能約）',say:'同事開始跟你搶客人，別家房仲也盯上你的物件了…'},
-  {n:'🏅 金牌房仲',t:70000,st:13,cap:5,rq:60,unl:'預售屋接待中心',say:'預售屋接待中心的代銷也點名要你幫忙！'},
+  {n:'🐤 資深房仲',t:55000,st:12,cap:5,rq:50,unl:'打電話約工班驗屋（認識的工班，店裡就能約）、預售屋接待中心（帶看有獎金，職位越高越多）',say:'同事開始跟你搶客人，別家房仲也盯上你的物件了…'},
+  {n:'🏅 金牌房仲',t:70000,st:13,cap:5,rq:60,say:'代銷看你業績漂亮，預售屋的帶看獎金和成交獎金都調高了！'},
   {n:'🎖️ 副店長',t:85000,st:14,cap:6,rq:70,say:'老蕭把一個新來的菜鳥交給你帶，你也變成別人的老蕭了。'},
   {n:'🐔 店長',t:100000,st:15,cap:6,rq:75,say:'老蕭退休了，把幸福房屋交給你！'}
 ];
@@ -621,6 +621,8 @@ function fameWalk(){
   const p=W.agent.position,d=distKey(p.x,p.z);
   if(W.wd===undefined){W.wd=d;return}
   if(d===W.wd)return;W.wd=d;
+  if(S.st<S.maxSt&&(W.supDay!==S.day||S.time-(W.supT||0)>=150)&&Math.random()<.4){
+    const q=pick(SUPPLY),g=gainSt(q.n);W.supDay=S.day;W.supT=S.time;say(`${q.t}（體力 +${g}，現在 ${S.st} / ${S.maxSt}）`);return}
   if(W.wdDay===S.day&&S.time-(W.wdT||0)<90)return;
   const f=fameOf(d),area=DIST[d].n;
   const rl=S.listings.filter(L=>L.d===d&&!L.rumor&&L.flaws.some(x=>!(L.rev&&L.rev[x])));
@@ -632,11 +634,11 @@ function fameWalk(){
     const me=S.name||'房仲';
     if(f<40)say(pick(['路人指著你小聲說：「欸，那個好像是幸福房屋的…」','有人在電線桿前停下來，看著你貼的傳單點點頭 📄',`${area}的店員跟你揮揮手：「房仲先生，加油喔！」`]));
     else if(f<70)say(pick([`路人笑著打招呼：「幸福房屋的${me}！上次傳單我還留著喔」`,'小朋友指著你大喊：「是紅布條房仲！」',`${area}的阿姨拉住你：「我家隔壁也想賣，下次來坐坐！」`]));
-    else{say(pick([`${area}的人都認得你，有人遞來一杯冰紅茶 🧋（體力 +1）`,`街角的老闆大聲說：「${me}～今天也來賣房喔！」整條街的人都轉頭看你`]));if(Math.random()<.5)S.st=Math.min(S.maxSt,S.st+1)}
+    else{say(pick([`${area}的人都認得你，有人遞來一杯冰紅茶 🧋（體力 +1）`,`街角的老闆大聲說：「${me}～今天也來賣房喔！」整條街的人都轉頭看你`]));{const g=gainSt(1);S.msg+=g?`（體力 +1，現在 ${S.st} / ${S.maxSt}）`:'（體力已經滿了，心領了）';render()}}
   }
 }
 /* 動作要升到哪個職位才能用（0＝一開始就能） */
-const UNL={banner:1,sign:1,inspbook:2,presale:3};
+const UNL={banner:1,sign:1,inspbook:2,presale:2};
 const isLocked=k=>!S.noLock&&UNL[k]!==undefined&&S.rank<UNL[k];
 const lockMsg=k=>k==='inspbook'?`🔒 要升到「${RANKS[UNL[k]].n}」才有配合的工班，可以在店裡打電話約驗屋。現在想驗屋，要自己到物件那邊找師傅。`:`🔒 要升到「${RANKS[UNL[k]].n}」才能使用。老蕭：「先把基本功練好，業績和口碑夠了就會升職！」`;
 const rk=()=>RANKS[Math.min(S.rank,RANKS.length-1)];
@@ -660,6 +662,7 @@ const GOOD_NOTES=['屋主急著換屋，價錢很好談','房子剛整理過，�
 const QUESTIONS=['這間會漏水嗎？','晚上附近會很吵嗎？','真的走路五分鐘就到捷運嗎？','這間房子有沒有什麼問題啊？','管理費會很貴嗎？'];
 const CHECKS={ghost:'查凶宅網',doc:'調資料',inspect:'請人驗屋'};
 const ACT={
+  teach:{st:1,m:0,mins:30,n:'👶 教小新做事中…'},
   flyer:{st:2,m:200,mins:45,n:'📄 貼傳單中…'},banner:{st:3,m:800,mins:90,n:'🚩 掛紅布條中…'},
   sign:{st:4,m:0,mins:120,n:'🪧 舉牌中…'},scout:{st:2,m:0,mins:60,n:'🚪 按電鈴中…'},
   bank:{st:1,m:0,mins:60,n:'🏦 帶客人做貸款試算…'},bento:{st:0,m:120,mins:20,n:'🍱 吃便當中…'},drink:{st:0,m:50,mins:10,n:'🧋 喝飲料中…'},bentoS:{st:0,m:100,mins:20,n:'🍱 在超商吃便當中…'},coffee:{st:0,m:60,mins:10,n:'☕ 喝咖啡中…'},rest:{st:0,m:0,mins:60,n:'🪑 坐在長椅上休息…'},
@@ -736,7 +739,7 @@ function openPresale(){
   openM(`<div class="big">🏗️</div><h3>${P.name}</h3><p class="small">${P.dev}・預售屋接待中心</p>
     <ul class="events">
       <li>🏢 總價 ${P.lo}～${P.hi} 萬，剩下 ${P.units} / ${P.total} 戶</li>
-      <li>🚗 每帶一組客人來參觀，代銷給帶看獎金 500 元</li>
+      <li>🚗 每帶一組客人來參觀，代銷給帶看獎金 ${fmt(Math.round(500*psMul()))} 元（${rk().n.replace(/^\S+\s*/,'')}，職位越高獎金越多）</li>
       <li>💰 成交的話，代銷再給成交獎金${P.boost?'，<b style="font-weight:400;color:var(--red)">本週加碼 1.5 倍！</b>':''}</li>
     </ul>
     <p class="small">新房子沒有凶宅、漏水的問題，價格由代銷談，你只要負責找客人。喜歡新大樓、預算夠的客人比較容易成交。</p>
@@ -908,9 +911,13 @@ function evWhere(t){
   return R(/i 珍食|珍食/,{w:'store',fx:['🍙','搶到 i 珍食！']})
    ||R(/喝酒/,{w:'store',cust:1,fx:['🍻','乾杯！']})
    ||R(/紅線|罰單/,{w:'moto',ride:1,fx:['🚨','被開罰單']})
-   ||R(/加油/,{w:'moto',ride:1,fx:['⛽','加油 60 元']})
+   ||R(/爆胎|輪胎/,{w:'moto',ride:1,fx:['🛞','輪胎出問題']})
+   ||R(/拋錨|該保養/,{w:'moto',ride:1,fx:['🔧','機車故障']})
+   ||R(/機車沒油|油表/,{w:'moto',ride:1,fx:['⛽','快沒油了']})
    ||R(/清潔隊/,{w:'pole',fx:['🧹','傳單被清掉了']})
    ||R(/完銷|新建案/,{w:'presale',fx:['🏗️','']})
+   ||R(/新來的菜鳥小新/,{w:'shop',pres:1,cust:1,fx:['👶','新人小新']})
+   ||R(/小新/,{w:'shop',cust:1,fx:['👶','小新']})
    ||R(/升職成/,{w:'shop',pres:1,fx:['🎊','升職！'],party:1})
    ||R(/本週業績達標|沒達標|第一週結束|打這週的成績/,{w:'shop',pres:1,fx:['📊','週結算']})
    ||R(/週五結算/,{w:'shop',fx:['📊','週五結算']})
@@ -920,12 +927,15 @@ function evWhere(t){
    ||R(/鬧鐘/,{w:'shop',fx:['⏰','睡過頭了！']})
    ||R(/颱風/,{w:'shop',fx:['🌀','颱風假']})
    ||R(/塞車/,{w:'shop',fx:['🚗','塞車']})
+   ||R(/抗議/,{w:'shop',cust:1,fx:['😡','屋主抗議']})
    ||R(/屋主拿著權狀|屋主看到廣告/,{w:'shop',cust:1,fx:['🏠','屋主上門']})
    ||R(/門口等|一家人/,{w:'shop',cust:1,fx:['🙋','客人上門']})
    ||R(/家長來電|傳訊息|屋主傳 LINE/,{w:'shop',fx:['📱','叮咚！']})
    ||R(/等太久|去別家/,{w:'shop',fx:['🚶','客人走了']})
    ||R(/家人反對/,{w:'shop',fx:['🕊️','客人反悔']})
    ||R(/聽說.*聊|大家都說/,{w:'shop',fx:['🗣️','名聲傳開了']})
+   ||R(/股市大跌|套牢/,{w:'shop',fx:['📉','股市大跌']})
+   ||R(/股市|股票|零股|指數/,{w:'shop',fx:['📈','股市大漲']})
    ||R(/驗屋報告/,{w:'shop',fx:['📋','驗屋報告']})
    ||R(/假日.*也/,{w:'shop',fx:['🆚','對手出動']})
    ||R(/平安無事|很平靜/,{w:'shop',fx:['💤','']})
@@ -983,9 +993,14 @@ function endTutorial(){
   resetAgent();save();render();
 }
 function openMoto(){
-  if(S.scooter){openM(`<div class="big">🛵</div><h3>七匹狼機車行</h3><p>「機車騎得還順嗎？記得每天加油喔！」</p><button class="btn alt" data-a="close">好</button>`);return}
+  if(S.scooter){const c=S.sc=S.sc||scFresh(),bar=(n,mx)=>'▮'.repeat(Math.max(0,Math.min(mx,n)))+'▯'.repeat(Math.max(0,mx-Math.max(0,n)));
+    const b=(k,cost,t,sub,dis)=>`<button class="btn alt" data-a="motoserv" data-k="${k}" ${S.money<cost||dis?'disabled':''}>${t}（${fmt(cost)} 元）<br><span style="font-size:13px">${dis?'不需要':sub}</span></button>`;
+    openM(`<div class="big">🛵</div><h3>七匹狼機車行</h3><p class="small">「機車要照顧才會跑得久！」</p>
+      <ul class="events"><li>⛽ 油量 ${bar(c.fuel,5)}　還能騎約 ${c.fuel} 天</li><li>🛞 輪胎 ${c.tire>6?'還很新':c.tire>2?'有點磨損':'快磨平了'}</li><li>🔧 保養 ${c.maint>5?'狀況良好':c.maint>2?'差不多該保養':'再不保養會拋錨'}</li></ul>
+      ${b('fuel',60,'⛽ 加滿油','約 5 天不用加油',c.fuel>=5)}${b('tire',800,'🛞 換新輪胎','不會爆胎，約 14 天',c.tire>=12)}${b('maint',500,'🔧 定期保養','不會拋錨，約 12 天',c.maint>=10)}
+      <button class="btn alt" data-a="close">先離開</button>`);return}
   openM(`<div class="big">🛵</div><h3>七匹狼機車行</h3><p>「少年仔，跑業務用走的太累啦！買一台，整個坪安鎮都跑得透透。」</p>
-    <ul class="events"><li>🛵 移動速度大約是走路的 2.4 倍</li><li>⛽ 每天要加油 60 元</li><li>🚨 偶爾會被開違停罰單</li></ul>
+    <ul class="events"><li>🛵 移動速度大約是走路的 2.4 倍</li><li>⛽ 約 5 天加一次油（60 元）</li><li>🛞 輪胎和引擎要定期換胎、保養</li><li>🚨 偶爾會被開違停罰單</li></ul>
     <button class="btn" data-a="buymoto" ${S.money<20000?'disabled':''}>買機車（20,000 元）${S.money<20000?`<br><span style="font-size:13px">還差 ${fmt(20000-S.money)} 元</span>`:''}</button>
     <button class="btn alt" data-a="close">再存一下錢</button>`);
 }
@@ -993,13 +1008,17 @@ function showStatus(){
   const R0=rk(),lg=document.querySelector('.side .legend');
   openM(`<h3>📊 我的狀態</h3>${statusNote()}
     <div class="stgrid"><div><b>${fmt(S.money)}</b><span>💰 錢</span></div><div><b>${repFace()}</b><span>⭐ 口碑</span></div><div><b>${S.customers.length}</b><span>🙋 客人</span></div></div>
+    ${S.mkt?`<div class="row"><span>📈 坪安股市</span><span>${S.mkt.idx} ${S.mkt.moodDays>0?(S.mkt.mood>0?'🔺 客人手頭寬':'🔻 客人手頭緊'):'➖'}</span></div>`:''}
     <div class="row"><span>💪 體力</span><span>${S.st} / ${S.maxSt}</span></div><div class="bar"><i class="g" style="width:${S.st/S.maxSt*100}%"></i></div>
     <div class="row" style="margin-top:10px"><span>${R0.n}</span><span>${fmt(S.week)} / ${fmt(R0.t)} 元</span></div><div class="bar"><i class="r" style="width:${clamp(S.week/R0.t*100,0,100)}%"></i></div>
-    <p class="small" style="text-align:left;margin-top:6px">本週業績達標、口碑夠好才能升職，本週還剩 ${7-((S.day-1)%7)} 天${S.scooter?'。🛵 已經有機車':''}</p>
+    <p class="small" style="text-align:left;margin-top:6px">本週業績達標、口碑夠好才能升職，本週還剩 ${7-((S.day-1)%7)} 天${S.scooter?(scOK()?'。🛵 已經有機車':'。🛵 機車沒油了，快去加油'):''}</p>
     ${lg?`<details class="lgd"><summary>📍 地圖上可以做的事</summary><div class="legend">${lg.innerHTML}</div></details>`:''}
     <button class="btn alt" data-a="close">關閉</button>`);
 }
 function openBank(){
+  if(!bankOpen()){
+    const why=isWeekend()?'今天是假日，銀行休息。':S.time<540?'現在還沒開門，等 9 點再來。':'已經過了營業時間，明天再來。';
+    openM(`<div class="big">🏦</div><h3>發大財銀行・休息中</h3><p class="small">銀行營業時間：<b>平日 09:00～15:30</b>，週六日休息。<br>${why}${S.opening===1&&!S.shopOpened?'<br>要辦開店貸款，也要挑平日的營業時間喔！':''}</p><button class="btn alt" data-a="close">好</button>`);return}
   const list=S.customers;
   openM(`<div class="big">🏦</div><h3>發大財銀行</h3>${S.opening===1&&!S.shopOpened?'<button class="btn" data-a="loan">🏪 申請開店貸款</button>':''}<p class="small">帶客人來做貸款試算，銀行評估後通常可以多貸一點，客人的預算會提高約 10～15%。每位客人只能試算一次。</p>
     ${list.length?list.map(c=>`<button class="btn alt pickc" data-a="bankgo" data-k="${c.id}" ${c.loan||S.st<1?'disabled':''}>🙋 ${c.name}<br><span class="small">想找${cWant(c)}，預算 ${fmt(c.budget)} 萬${c.loan?'（已經試算過）':''}</span></button>`).join(''):'<p class="small">目前沒有客人可以帶來，先去找客人吧。</p>'}
@@ -1036,7 +1055,7 @@ function newCustomer(dd){
   const d=dd||(Math.random()<.25?pick(Object.keys(DIST)):pick(LOTS).d);
   const opts=LOTS.filter(l=>l.d===d).map(l=>l.type),type=Math.random()<.88&&opts.length?pick(opts):pick(TYPES);
   const school=d==='school'?Math.random()<.6:d==='station'?Math.random()<.25:false;
-  const budget=Math.round(BASE[type]*DIST[d].m*(school?1.12:1)*rnd(.85,1.2)/10)*10;
+  const budget=Math.round(BASE[type]*DIST[d].m*(school?1.12:1)*rnd(.85,1.2)*mktF()/10)*10;
   return{id:S.cseq++,name:pick(CNAMES),area:DIST[d].n,d,type,school,budget,until:S.day+3};
 }
 function newSchoolCustomer(){
@@ -1061,6 +1080,13 @@ SEGS[2].wkPeaks=[[8,11.5],[14,17.5]];SEGS[2].wkm=1.25;SEGS[2].tipW='假日全家
 SEGS[3].wkPeaks=[[9,12],[14,18.5]];SEGS[3].wkm=1.2;SEGS[3].tipW='假日全家一起來採買，上午和下午人都很多';
 SEGS[4].wkPeaks=[[13,21]];SEGS[4].wkm=1.1;SEGS[4].tipW='假日逛老街的年輕人，下午到晚上都有';
 const isWeekend=()=>(S.day-1)%7>=5;
+function gainSt(n){const b=S.st;S.st=Math.min(S.maxSt,S.st+n);return S.st-b}
+const bankOpen=()=>!isWeekend()&&S.time>=540&&S.time<930;
+const mktF=()=>1+.04*((S.mkt&&S.mkt.moodDays>0)?S.mkt.mood:0);
+const scFresh=()=>({fuel:5,tire:14,maint:12});
+const scOK=()=>!!S.scooter&&(!S.sc||S.sc.fuel>0);
+const psMul=()=>[0,0,1,1.4,1.8,2.4][Math.min(S.rank,5)]||1;
+const SUPPLY=[{t:'賣豆漿的阿姨塞給你一杯熱豆漿 🥛',n:1},{t:'便當店老闆娘笑著遞來一顆茶葉蛋 🥚',n:1},{t:'路邊攤阿伯請你吃一碗愛玉冰 🍧',n:2},{t:'雜貨店阿嬤硬塞一瓶蠻牛給你：「年輕人要顧身體！」⚡',n:2},{t:'路過的小朋友分你一顆糖果 🍬',n:1}];
 const DNAME='一二三四五六日';
 function crowdOf(i,min){
   const G=SEGS[i],h=(min===undefined?S.time:min)/60,wk=(S.day-1)%7>=5;
@@ -1075,7 +1101,7 @@ function crowdOf(i,min){
 function newSegCustomer(i){
   const G=SEGS[i],k=Math.floor(Math.random()*G.types.length),type=G.types[k],d=G.ds[Math.floor(Math.random()*G.ds.length)];
   const school=(d==='school'||d==='station')&&Math.random()<G.sc;
-  const budget=Math.round(BASE[type]*DIST[d].m*(school?1.12:1)*rnd(G.bm[0],G.bm[1])/10)*10;
+  const budget=Math.round(BASE[type]*DIST[d].m*(school?1.12:1)*rnd(G.bm[0],G.bm[1])*mktF()/10)*10;
   return{id:S.cseq++,name:pick(CNAMES),area:DIST[d].n,d,type,school,budget,until:S.day+3,seg:G.who};
 }
 function startSignFP(ctx){
@@ -1084,7 +1110,7 @@ function startSignFP(ctx){
   const ev=[];const r=Math.random();
   if(r<.08){n=Math.max(0,n-1);ev.push('🚓 警察來勸導「這裡不能舉牌喔」，只好提早收工')}
   else if(r<.15){n=Math.max(0,n-1);S.st=Math.max(0,S.st-1);ev.push('🌧️ 突然下大雨，淋成落湯雞，體力 -1')}
-  else if(r<.23){S.st=Math.min(S.maxSt,S.st+1);ev.push('🧋 好心路人請你喝飲料，體力 +1')}
+  else if(r<.23){const g=gainSt(2);ev.push(g?`🧋 好心路人請你喝飲料，體力 +${g}（現在 ${S.st} / ${S.maxSt}）`:'🧋 好心路人請你喝飲料（體力本來就滿的，心領了）')}
   else if(r<.29){S.expo+=40;ev.push('📸 被路人拍照 PO 上網，意外爆紅！名氣變大了')}
   if(!ev.length&&Math.random()<.2){
     if(isWeekend()){n=Math.min(3,n+1);ev.push('👨‍👩‍👧 假日全家出遊，一家人停下來跟你聊了好久')}
@@ -1323,6 +1349,7 @@ function doSpot(sp){
 function perform(k,ctx){
   const a=ACT[k];
   if(isLocked(k)){say(lockMsg(k));return}
+  if(k==='bank'&&!bankOpen()){say('🏦 銀行休息中（營業時間：平日 09:00～15:30）');return}
   if(k==='bank'&&!findC(ctx.cid)){say('沒有客人可以帶來');return}
   if(k==='presale'&&!findC(ctx.cid)){say('沒有客人可以帶去參觀');return}
   if(k==='view'&&!findC(ctx.cid)){say('沒有客人可以帶看，先打廣告或守店吧');return}
@@ -1339,22 +1366,27 @@ function perform(k,ctx){
 }
 function finishAct(){
   const {k,ctx}=W.acting;W.acting=null;$('#busy').hidden=true;W.visitor.visible=false;jump();
+  if(k==='teach'){const Rk=S.rookie;if(Rk){Rk.xp++;Rk.taught=S.day;const lv=rookLv();
+    const lines=['你教小新怎麼接電話、怎麼笑著跟客人說「請坐」。','你帶小新看了一份謄本，教他哪裡要特別小心。','你示範怎麼跟屋主聊天、套出房子的真正問題。','你教小新怎麼貼傳單才不會被清潔隊清掉。'];
+    let t=pick(lines)+`（小新的成長：${'⭐'.repeat(lv)||'新手'}）`;
+    if(Rk.xp===3||Rk.xp===7||Rk.xp===12){S.rep+=2;t+=` 🎉 小新進步了！${['','現在會幫忙發傳單、招攬客人了','現在能獨當一面，會自己找客人','已經是半個老鳥，偶爾會幫你簽到案子'][lv]}。⭐ 口碑 +2`}
+    say(t)}else render();return}
   if(k==='presale'){
     const C=findC(ctx.cid),P=S.ps;if(!C||!P){render();return}
-    const f=psFit(C);S.money+=500;S.week+=500;S.total+=500;
+    const f=psFit(C),pb=Math.round(500*psMul());S.money+=pb;S.week+=pb;S.total+=pb;
     if(P.units>0&&Math.random()<f.ch){
-      const price=clamp(Math.round(C.budget*rnd(.85,1)/10)*10,P.lo,P.hi),comm=Math.round(price*20*(P.boost?1.5:1));
+      const price=clamp(Math.round(C.budget*rnd(.85,1)/10)*10,P.lo,P.hi),comm=Math.round(price*20*(P.boost?1.5:1)*psMul());
       S.money+=comm;S.week+=comm;S.total+=comm;S.deals++;S.rep+=3;P.units--;addFame('newtown',8);S.psd=(S.psd||0)+1;
       S.customers=S.customers.filter(c=>c.id!==C.id);
       S.msg=`${C.name}買了「${P.name}」！🏗️`;gong();confetti();
       openM(`<div class="big">🏗️</div><h3>預售屋成交！</h3><p>${C.name}買下「${P.name}」一戶，總價 ${price} 萬</p>
-        <ul class="events"><li>🚗 帶看獎金 +500 元</li><li>💰 代銷成交獎金 +${fmt(comm)} 元${P.boost?'（本週加碼 1.5 倍）':''}</li><li>⭐ 口碑上升</li><li>🏢 「${P.name}」剩下 ${P.units} 戶</li></ul>
+        <ul class="events"><li>🚗 帶看獎金 +${fmt(pb)} 元</li><li>💰 代銷成交獎金 +${fmt(comm)} 元${P.boost?'（本週加碼 1.5 倍）':''}</li><li>⭐ 口碑上升</li><li>🏢 「${P.name}」剩下 ${P.units} 戶</li></ul>
         <button class="btn" data-a="close">太好了！</button>`);
       render();return;
     }
     const leave=Math.random()<.4;
     if(leave)S.customers=S.customers.filter(c=>c.id!==C.id);else C.ps=P.name;
-    say(leave?`${C.name}參觀完說：「預售屋要等好幾年才能住，還是算了…」帶看獎金 +500 元`:`${C.name}說要回家跟家人討論看看。帶看獎金 +500 元`);
+    say(leave?`${C.name}參觀完說：「預售屋要等好幾年才能住，還是算了…」帶看獎金 +${fmt(pb)} 元`:`${C.name}說要回家跟家人討論看看。帶看獎金 +${fmt(pb)} 元`);
     return;
   }
   if(k==='bank'){const C=findC(ctx.cid);if(C){const old=C.budget;C.budget=Math.round(C.budget*rnd(1.1,1.16)/10)*10;C.loan=true;
@@ -1407,7 +1439,7 @@ function signEvent(){
   else if(r<.46){S.expo+=45;say('📸 被路人拍照 PO 上網，意外爆紅！名氣大增')}
   else if(r<.58){S.expo+=10;say('🚓 警察來勸導：「這裡不能舉牌喔」只好先收工…')}
   else if(r<.68){S.st=Math.max(0,S.st-1);S.expo+=20;say('🌧️ 突然下大雨，淋成落湯雞… 體力 -1')}
-  else if(r<.78){S.st=Math.min(S.maxSt,S.st+1);S.expo+=20;say('🧋 好心路人請你喝飲料，體力 +1')}
+  else if(r<.78){const g=gainSt(2);S.expo+=20;say(g?`🧋 好心路人請你喝飲料，體力 +${g}（現在 ${S.st} / ${S.maxSt}）`:'🧋 好心路人請你喝飲料（體力本來就滿的，心領了）')}
   else{S.expo+=20;say('在路口舉牌兩小時，曬成小黑人了 ☀️')}
   return false;
 }
@@ -1416,8 +1448,16 @@ function checkResolve(id,k){
   const fs=L.flaws.filter(f=>FLAWS[f].check===k);
   if(fs.length){fs.forEach(f=>L.rev[f]=true);say(`查到了！這間有${fs.map(f=>FLAWS[f].e+f).join('、')}的問題。會誠實告訴客人，價格也跟著調降。`)}
   else say(`${CHECKS[k]}查過了，這方面沒問題 ✅`);
+  if(fs.some(f=>f==='海砂屋'||f==='違建'))S.msg+=' ⚠️ 這種問題危害住戶安全，到物件頁可以選擇拒賣或通報。';
 }
 function pcTodo(){return S.listings.filter(l=>!l.chk.ghost).length+S.listings.filter(l=>!l.chk.doc).length+(isLocked('inspbook')?0:S.listings.filter(l=>!l.chk.inspect&&!l.insp).length)}
+const rookLv=()=>{const x=(S.rookie&&S.rookie.xp)||0;return x>=12?3:x>=7?2:x>=3?1:0};
+function teachAsk(){
+  const Rk=S.rookie;if(!Rk)return;
+  const lv=rookLv(),why=Rk.taught===S.day?'今天已經教過了':S.st<1?'體力不夠':S.time>=DAY_END-35?'快下班了':'';
+  openM(`<div class="big">👶</div><h3>新人 小新</h3><p class="small">老蕭交給你帶的菜鳥。多教他，他學會了就會幫你發傳單、招攬客人，還會幫你拿獎金。</p>
+    <ul class="events"><li>成長：${'⭐'.repeat(lv)||'新手'}（教過 ${Rk.xp} 次）</li><li>${['還什麼都不會','會幫忙發傳單，有機會招來客人','能獨當一面，常常自己找客人','半個老鳥，偶爾會簽到案子，公司給你輔導獎金'][lv]}</li></ul>
+    <button class="btn" data-a="teach" ${why?'disabled':''}>🎓 教小新做事（體力 1，30 分鐘，一天一次）${why?`<br><span style="font-size:13px">${why}</span>`:''}</button><button class="btn alt" data-a="close">先不要</button>`)}
 function openPC(){
   if(W&&W.acting)return;
   const g=S.listings.filter(l=>!l.chk.ghost).length,d=S.listings.filter(l=>!l.chk.doc).length,ins=S.listings.filter(l=>!l.chk.inspect&&!l.insp),wait=S.listings.filter(l=>l.insp&&!l.chk.inspect);
@@ -1437,11 +1477,29 @@ function openListing(L){
   let btns=`<button class="btn" data-a="pickc" data-id="${L.id}" ${why?'disabled':''}>🚶 帶客人來看（體力 3，2 小時）${why?`<br><span style="font-size:13px">${why}</span>`:''}</button>`;
   const cost={ghost:'體力 1，100 元',doc:'體力 1，300 元',inspect:'體力 2，1,500 元'};
   for(const k in CHECKS){if(k==='inspect'&&L.insp&&!L.chk.inspect){btns+=`<p class="small">🔧 已經約好驗屋，報告明天早上出來</p>`;continue}if(!L.chk[k])btns+=`<button class="btn alt" data-a="lact" data-k="${k}" data-id="${L.id}">${CHECKS[k]}（${cost[k]}）</button>`}
+  const bad=known(L).filter(f=>f==='海砂屋'||f==='違建');
+  if(bad.length)btns+=`<p class="small" style="color:var(--red)">⚠️ 這間有${bad.join('、')}，會危害住戶安全。你可以選擇不賣，甚至通報。</p><button class="btn alt" data-a="refuse" data-id="${L.id}">🚫 良心拒賣（退回委託）</button><button class="btn alt" data-a="report" data-id="${L.id}">📣 通報主管機關</button>`;
   const tags=tagsHtml(L);
   openM(`<h3>🏠 ${L.name}</h3><p>開價 ${askPrice(L)} 萬</p><p class="small">${L.quip}</p><div class="tags" style="justify-content:center">${tags}</div>${rivalHtml(L)}
     ${btns}<button class="btn alt" data-a="close">先離開</button>`);
 }
 
+function askRefuse(id){const L=find(id);if(!L)return;
+  openM(`<div class="big">🚫</div><h3>要拒絕代售「${L.name}」嗎？</h3><p class="small">你會把委託退回給屋主，這間就不賣了。已經花的查詢費用拿不回來，但你的良心和口碑都會加分。</p>
+    <button class="btn" data-a="refuseok" data-id="${id}">對，我不賣這間</button><button class="btn alt" data-a="close">再想想</button>`)}
+function doRefuse(id){const L=find(id);if(!L){closeM();return}
+  const bad=known(L).filter(f=>f==='海砂屋'||f==='違建');
+  S.listings=S.listings.filter(x=>x.id!==id);S.rep+=4;S.refused=(S.refused||0)+1;addFame(L.d,3);
+  const q=pick(['屋主愣了一下，嘆口氣說：「唉…我也知道，謝謝你這麼老實。」','屋主有點不高興，不過還是說：「你是第一個跟我講實話的房仲。」','屋主沉默很久，說：「好吧，我先找人來處理。」']);
+  openM(`<div class="big">🙇</div><h3>你婉拒了代售</h3><p>「${L.name}」有${bad.join('、')}的問題，你說：「對不起，這間我沒辦法安心賣給別人。」</p><p class="small">${q}</p><ul class="events"><li>⭐ 口碑 +4（良心房仲）</li><li>📤 退回委託，少了一間物件</li></ul><button class="btn" data-a="close">好</button>`);render()}
+function askReport(id){const L=find(id);if(!L)return;
+  openM(`<div class="big">📣</div><h3>要通報「${L.name}」嗎？</h3><p class="small">你會通報給主管機關，派人來勘查處理。街坊會很感謝你，但屋主可能會很生氣，過幾天跑來抗議。這間也不會再賣了。</p>
+    <button class="btn" data-a="reportok" data-id="${id}">通報！住戶安全最重要</button><button class="btn alt" data-a="close">再想想</button>`)}
+function doReport(id){const L=find(id);if(!L){closeM();return}
+  const bad=known(L).filter(f=>f==='海砂屋'||f==='違建');
+  S.listings=S.listings.filter(x=>x.id!==id);S.rep+=8;S.reported=(S.reported||0)+1;addFame(L.d,6);
+  const angry=Math.random()<.4;if(angry)S.grudge=S.day+2;
+  openM(`<div class="big">📣</div><h3>通報完成</h3><p>你把「${L.name}」的${bad.join('、')}問題通報給主管機關，他們派人來勘查了。</p><ul class="events"><li>🏛️ 主管機關要求屋主限期改善</li><li>⭐ 口碑 +8（為街坊把關）</li>${angry?'<li>😡 屋主很不爽，過幾天可能會來找你…</li>':'<li>🍵 鄰居們跑來跟你說謝謝</li>'}</ul><button class="btn" data-a="close">好</button>`);render()}
 function bestFor(C){
   let best=null,bs=-9;S.listings.forEach(L=>{const m=matchInfo(L,C);const sc=m.bonus+(m.ratio>=.95?.05:0);if(sc>bs){bs=sc;best={L,m}}});return best;
 }
@@ -1712,7 +1770,8 @@ function enterShop(){
   W.agent.position.set(W.IX,0,W.IZ-1.45);W.h=0;
   $('#shopui').hidden=false;$('#backbtn').hidden=true;$('#joy').hidden=true;$('#ctx').hidden=true;W.near=null;
   applyShopView();
-  W.camSnap=true;say(S.shopView==='top'?'回到店裡了。可以坐著等電話、用電腦查資料、約驗屋，或午休一下。':'坐回辦公桌前了。點電話等客人打來，點螢幕可以查資料、約驗屋。');
+  W.camSnap=true;if(S.rookie&&!S.rookie.met){S.rookie.met=1;say('老蕭交代的新人小新在左邊的位子，點他就能教他做事 👶');return}
+  say(S.shopView==='top'?'回到店裡了。可以坐著等電話、用電腦查資料、約驗屋，或午休一下。':'坐回辦公桌前了。點電話等客人打來，點螢幕可以查資料、約驗屋。');
 }
 function applyShopView(){
   const top=S.shopView==='top';W.agent.visible=top;W.cam.fov=top?40:66;W.cam.updateProjectionMatrix();
@@ -1804,6 +1863,24 @@ function beep(){
       g.gain.setValueAtTime(.0001,AC.currentTime+d);g.gain.exponentialRampToValueAtTime(.05,AC.currentTime+d+.01);
       g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d+.12);o.connect(g).connect(AC.destination);o.start(AC.currentTime+d);o.stop(AC.currentTime+d+.14)})}catch(e){}
 }
+function mktTick(evM,calm){
+  const m=S.mkt=S.mkt||{idx:100,mood:0,moodDays:0};
+  if(m.moodDays>0)m.moodDays--;
+  const r=Math.random();let ch=r<.2?rnd(2.5,5):r<.4?-rnd(2.5,5):rnd(-1.2,1.2);
+  m.idx=Math.round(clamp(m.idx*(1+ch/100),60,160)*10)/10;
+  if(calm)return;
+  if(ch>=2.5){m.mood=1;m.moodDays=3;
+    S.customers.forEach(c=>{c.budget=Math.round(c.budget*1.05/10)*10});
+    evM.push(`📈 昨天股市大漲（坪安指數 ${m.idx}），客人荷包變鬆，手上客人的預算都提高 5%`);
+    if(Math.random()<.4){const c=newCustomer();S.customers.push(c);evM.push(`💹 賺到股票價差的${c.name}打來：「想換間好一點的房子！」想找${cWant(c)}`)}
+    else if(Math.random()<.3&&S.rank>=1){S.money+=400;evM.push('💰 你放了很久的零股配息進帳了，+400 元')}}
+  else if(ch<=-2.5){m.mood=-1;m.moodDays=3;
+    S.customers.forEach(c=>{c.budget=Math.round(c.budget*.95/10)*10});
+    evM.push(`📉 昨天股市大跌（坪安指數 ${m.idx}），客人荷包縮水，手上客人的預算都降低 5%`);
+    if(S.customers.length>1&&Math.random()<.35){const c=S.customers.splice(Math.floor(Math.random()*S.customers.length),1)[0];evM.push(`😭 ${c.name}股票被套牢，說這陣子先不買房了`)}
+    else evM.push(SAY('老蕭','👴','股市跌，客人都在觀望。股票是一時的，房子是一輩子的，客人再來時要更有耐心。'))}
+  else if(Math.random()<.12)evM.push(SAY('老蕭','👴','聽說最近股市小幅震盪。客人心情好不好，會影響他們肯不肯出手買房。'))
+}
 function endDay(){
   if(S.ended)return;
   const ev=[];const calm=!S.noLock&&S.day<=3;
@@ -1819,7 +1896,16 @@ function endDay(){
   if(owner)ev.push('🏠 有屋主看到廣告，想委託給你！');
   if(S.ps&&S.ps.units>0){const d=Math.floor(rnd(0,2.3));S.ps.units=Math.max(0,S.ps.units-d);
     if(S.ps.units===0)ev.push(`🏗️ 「${S.ps.name}」完銷了！代銷說下週會推新建案`)}
-  if(S.scooter){S.money-=60;ev.push('⛽ 機車加油 60 元');if(Math.random()<.06){S.money-=600;ev.push('🚨 機車停在紅線被開罰單 600 元…')}}
+  if(S.rookie){const lv=rookLv(),Rk=S.rookie;
+    if(lv>=1&&Math.random()<[0,.3,.45,.55][lv]){const c=newCustomer();S.customers.push(c);ev.push(`👶 小新幫忙發傳單，招來一位客人：${c.name}想找${cWant(c)}`)}
+    if(lv>=2)S.expo+=15;
+    if(lv>=3&&Math.random()<.2){S.money+=600;S.week+=600;S.total+=600;ev.push('👶 小新自己談成一筆小案子，公司發了 600 元輔導獎金給你')}
+    else if(lv===0&&Rk.taught&&S.day-Rk.taught>=4&&Math.random()<.3){ev.push('👶 小新有點迷惘地問：「學長，今天可以教我嗎？」（點店裡左邊的小新，可以教他做事）')}}
+  if(S.scooter){const c=S.sc=S.sc||scFresh(),f0=c.fuel;c.fuel=Math.max(0,c.fuel-1);c.tire--;c.maint--;
+    if(Math.random()<.06){S.money-=600;ev.push('🚨 機車停在紅線被開罰單 600 元…')}
+    if(c.fuel===0&&f0>0)ev.push('⛽ 機車沒油了！加油以前只能用走的，去七匹狼加油吧');else if(c.fuel===1)ev.push('⛽ 機車油表快見底了，這兩天找時間去七匹狼加油');
+    if(c.tire<=0&&Math.random()<.5){S.money-=800;c.tire=14;ev.push('🛞 機車半路爆胎！只好當場換新輪胎，花了 800 元')}else if(c.tire===2)ev.push('🛞 機車輪胎快磨平了，記得去七匹狼換胎');
+    if(c.maint<=0&&Math.random()<.4){S.money-=700;c.maint=12;ev.push('🔧 機車拋錨！拖去修理花了 700 元（平常定期保養才不會壞）')}else if(c.maint===2)ev.push('🔧 機車該保養了，不然會拋錨')}
   let stB=0;const nr=Math.random();
   if(nr<.15){stB+=2;ev.push('🍙 下班前搶到超商 i 珍食！明天體力 +2')}
   else if(!calm&&nr<.27){S.rep+=2;stB-=2;ev.push('🍻 被同事硬拉去喝酒，感情變好，⭐ 口碑上升，但明天體力 -2')}
@@ -1851,9 +1937,11 @@ function endDay(){
     if(wr<.25){const c=newCustomer();c.budget=Math.round(c.budget*1.1/10)*10;S.customers.push(c);evM.push(`👨‍👩‍👧 假日一早，${c.name}一家人已經在門口等著看屋，想找${cWant(c)}`)}
     else if(wr<.42){S.time=Math.max(S.time,DAY_START+30);evM.push('🚗 假日塞車，晚了半小時才到公司')}
   }
+  if(dNew<5)mktTick(evM,calm);
   S.listings.forEach(L=>{if(!L.insp||L.chk.inspect)return;delete L.insp;L.chk.inspect=true;
     const fs=L.flaws.filter(f=>FLAWS[f].check==='inspect');fs.forEach(f=>L.rev[f]=true);
     evM.push(fs.length?`📋 「${L.name}」的驗屋報告出來了：有${fs.map(f=>FLAWS[f].e+f).join('、')}的問題，會誠實告訴客人、價格跟著調降`:`📋 「${L.name}」的驗屋報告出來了：沒有問題 ✅`)});
+  if(S.grudge&&S.day>=S.grudge){S.grudge=0;S.rep-=3;evM.push('😡 之前被你通報的屋主跑到店門口抗議：「都是你害的！」⭐ 口碑 -3（不過街坊都站在你這邊）')}
   S.banners=S.banners.map(b=>Math.max(0,b-1));
   if((S.day-1)%7===0){
     ev.push('📅 週日晚上，老蕭幫你打這週的成績…');
@@ -1863,7 +1951,7 @@ function endDay(){
       const last=S.rank>=RANKS.length-1,N=last?null:RANKS[S.rank+1],need=last?END_REQ:N.rq;
       if(S.rep>=need){
         if(last){if(!S.opening&&!S.shopOpened){S.opening=1;ev.push(SAY('老蕭','👴','你的業績和口碑都夠了，是時候開自己的店了！去發大財銀行談開店貸款吧，頭期款要先準備好喔。'),'🏪 開店目標解鎖：存夠頭期款，到發大財銀行申請「開店貸款」')}}
-        else{S.rank++;S.maxSt=N.st;S.st=N.st;ev.push(`🎊 本週業績達標，口碑也夠好！升職成「${N.n}」<br>💪 體力上限變成 ${N.st}，🏠 可以同時負責 ${N.cap} 間物件${N.unl?'<br>🔓 新解鎖：'+N.unl:''}${N.say?'<br>'+N.say:''}`)}
+        else{S.rank++;S.maxSt=N.st;S.st=N.st;if(S.rank===4&&!S.rookie){S.rookie={xp:0,taught:0,met:0};ev.push(SAY('老蕭','👴','來，這是新來的菜鳥小新，今天起交給你帶！他的位子在店裡左邊，有空就點他，教他做事。'))};ev.push(`🎊 本週業績達標，口碑也夠好！升職成「${N.n}」<br>💪 體力上限變成 ${N.st}，🏠 可以同時負責 ${N.cap} 間物件${N.unl?'<br>🔓 新解鎖：'+N.unl:''}${N.say?'<br>'+N.say:''}`)}
       }else if(!(last&&(S.opening||S.shopOpened)))ev.push(`📈 本週業績達標了！<br>不過老蕭說：「客人還不夠信任你，口碑再好一點才能${last?'開店':'升職'}。誠實告知房子的問題、準時帶看、別漏接電話，口碑就會慢慢起來。」`);
     }else if(S.day<=8)ev.push(`🌱 第一週結束啦！業績還沒到 ${fmt(R.t)} 元沒關係（這週賺了 ${fmt(S.week)} 元）<br>老蕭：「第一週能撐下來就很棒了，下週繼續！」`);
     else ev.push(`📉 本週業績沒達標（${fmt(S.week)} / ${fmt(R.t)} 元）<br>店長：「下週加油！」`);
@@ -2059,8 +2147,12 @@ document.addEventListener('click',e=>{
       if(!fromModal)$('#scene').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});goSpot(W.lotSpots[L.lot])},
     adyes:()=>{S.money-=1500;S.expo+=40;Object.keys(DIST).forEach(k=>addFame(k,3));closeM();say('刊登好了！更多人看到你了 📢')},
     look:()=>setLook(k),lookdone:finishCreator,tutnext:tutNext,guideskip:()=>{S.gdDone=true;render()},treat:()=>treat(id,k),savecode:openCode,copycode:copyCode,loadcode:readCode,codego:applyCode,loan:openLoan,shopsel:()=>openShopName(k),shopname:()=>buildShop(k),contin:()=>{S.ended=false;closeM();save();render()},sceneok:()=>{closeM();const a=W.sceneAfter;W.sceneAfter=null;if(a)a()},tutskip:()=>{if(W.tut&&W.tut.list)skipSeq();else endTutorial()},restyle:()=>{closeM();openCreator(false)},
-    buymoto:()=>{if(S.money<20000)return;S.money-=20000;S.scooter=true;closeM();gong();say('買了一台機車！之後在鎮上移動會快很多 🛵')},
+    buymoto:()=>{if(S.money<20000)return;S.money-=20000;S.scooter=true;S.sc=scFresh();closeM();gong();say('買了一台機車！之後在鎮上移動會快很多 🛵')},
     bankgo:()=>{closeM();perform('bank',{cid:+k})},buy:()=>{closeM();perform(k,{})},
+    motoserv:()=>{const c=S.sc=S.sc||scFresh(),cost={fuel:60,tire:800,maint:500}[k];if(!cost||S.money<cost)return;S.money-=cost;
+      if(k==='fuel'){c.fuel=5;gong()}else if(k==='tire')c.tire=14;else c.maint=12;
+      say({fuel:'⛽ 加滿油了！可以騎好幾天',tire:'🛞 換了新輪胎，跑起來穩穩的',maint:'🔧 保養完了，引擎聲音變順了'}[k]);openMoto()},
+    refuse:()=>askRefuse(id),refuseok:()=>doRefuse(id),report:()=>askReport(id),reportok:()=>doReport(id),teach:()=>perform('teach',{}),
     pspick:psPick,psgo:()=>{closeM();perform('presale',{cid:+k})},
     signskip:skipSign,signowner:()=>{const L=W.ownerLot;if(L>=0&&S.listings.length<cap()&&freeLots().includes(L))drawCard('公園的阿伯想賣房！',L);else closeM()},
     callowner:()=>{const fl=freeLots();if(fl.length&&S.listings.length<cap())drawCard('屋主打電話來委託！',pick(fl));else{closeM();say('手上物件滿了，只好婉拒…')}},
@@ -2843,7 +2935,7 @@ function initScene(){
   rival.position.set(8,0,-10);
 
   // 店內
-  let W_bossIn=null;
+  let W_bossIn=null,W_rookIn=null,W_rookTag=null;
   const IX=100,IZ=0,inn=new THREE.Group();inn.position.set(IX,0,IZ);sc.add(inn);
   const floor=add(B(7,.2,6),0xe9d3b5,0,-.1,0,inn);floor.castShadow=false;
   add(B(7,3.2,.2),0xfff4e6,0,1.6,-3,inn);
@@ -2890,11 +2982,19 @@ function initScene(){
    add(B(.75,1.3,.55,.04),0x9aa8b8,-1.5,.65,-2.58,inn);[.25,.65,1.05].forEach(y=>add(B(.6,.03,.02),0x6f7d8e,-1.5,y,-2.29,inn));
    add(B(.04,.9,.62,.01),0xffd447,-3.37,1.8,1.5,inn);add(B(.03,.7,.44,.01),0xe8463a,-3.34,1.8,1.5,inn);
    const bi=boss.clone();bi.visible=true;bi.position.set(2.3,0,-2.3);bi.rotation.y=.05;inn.add(bi);W_bossIn=bi;
+   {add(B(1.3,.08,.7,.02),0xc98b5a,-2.05,.75,-1.4,inn);add(B(1.2,.7,.08,.02),0xb07548,-2.05,.38,-1.08,inn);
+    add(B(.5,.03,.36,.01),0xe9e4dc,-2.0,.8,-1.35,inn);const lm=add(B(.5,.34,.05,.02),0x2b3340,-2.0,1.0,-1.55,inn);lm.rotation.x=-.2}
+   const rk0=person(0x5aa0e0);rk0.position.set(-2.05,0,-2.1);rk0.rotation.y=-.05;rk0.scale.setScalar(.9);
+   outline(add(new THREE.SphereGeometry(.45,28,20,0,Math.PI*2,0,Math.PI*.55),0x26262c,0,1.08,-.04,rk0),1.04).rotation.x=-.3;
+   outline(add(new THREE.SphereGeometry(.47,24,16,0,Math.PI*2,0,Math.PI*.42),0xffd447,0,1.12,-.02,rk0),1.04).rotation.x=-.18;
+   rk0.visible=false;inn.add(rk0);W_rookIn=rk0;
+   const rtg=new THREE.Mesh(new THREE.PlaneGeometry(.7,.22),new THREE.MeshBasicMaterial({map:textTex('新人 小新','#8fd0ff','#1b3a5c',256,80),transparent:true}));rtg.position.set(-2.05,2.0,-1.9);rtg.visible=false;inn.add(rtg);W_rookTag=rtg;
    const tg=new THREE.Mesh(new THREE.PlaneGeometry(.78,.24),new THREE.MeshBasicMaterial({map:textTex('店長 老蕭','#FFD447','#7a1f16',256,80),transparent:true}));tg.position.set(2.3,2.1,-2.2);inn.add(tg)}
   W={sway,waterTex,sparkTex,fpHands:fpH,fpPeds,skyU,skyG,sun,moon,stars,hillM,hillM2,cloudMat,boss,agentParts,mk:{add,outline,M},winMats,train,jib,flags,billMat,bill:{c:billC,tex:billTex,key:''},peds,glows,pools,glassMat,signProp,clouds,inClick:[],scr:{c:scrC,tex:scrTex},view:'follow',camYaw:0,joy:{x:0,y:0},rival,rivalPath:[],rivalWait:2,IX,IZ,winPane,phone,papers,inside:false,call:null,ringT:0,camSnap:true,R,sc,cam,hemi,dl,winMat,bulbMat,agent,leads,visitor,flyers,bans:[ban0,ban1],lots,lotSpots,spots,clickables,blocks,
     path:[],pending:null,acting:null,jumpT:0,h:0,fp:false,keys:{},near:null,saveT:0,lastMin:-1};
 
-  W.bossIn=W_bossIn;W.inClick=[[phone,'phone'],[monitor,'pc'],[screen,'pc']];
+  W.bossIn=W_bossIn;W.rookIn=W_rookIn;W.rookTag=W_rookTag;W.inClick=[[phone,'phone'],[monitor,'pc'],[screen,'pc']];
+  if(W_rookIn){W.inClick.push([W_rookIn,'rookie']);W_rookIn.traverse(o=>{if(o.isMesh&&o!==W_rookIn)W.inClick.push([o,'rookie'])})}
   {const done=new Set();sc.traverse(o=>{if(!o.isMesh)return;(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(!m||done.has(m)||m.isMeshBasicMaterial||!m.color)return;done.add(m);m.color.setHex(gradeHex(m.color.getHex()))})})}
   // 騎機車用的機車
   const ride=new THREE.Group();agent.add(ride);ride.visible=false;
@@ -2926,6 +3026,7 @@ function initScene(){
       ray.setFromCamera(ndc,cam);const h=ray.intersectObjects(W.inClick.map(a=>a[0]),false)[0];if(!h)return;
       const kind=W.inClick.find(a=>a[0]===h.object)[1];
       if(kind==='phone'){if(W.call)answerCall();else perform('shop',{})}
+      else if(kind==='rookie')teachAsk();
       else openPC()
       return;
     }
@@ -3075,11 +3176,12 @@ function tick(dt,t){
     else if(!modalOpen()){W.ringT-=dt;if(W.ringT<=0){W.ringT=2.6;ring()}}
   }
   W.phone.rotation.z=W.call&&!reduced?Math.sin(t*40)*.15:0;
+  if(W.rookIn){W.rookIn.visible=!!S.rookie;if(W.rookTag)W.rookTag.visible=!!S.rookie;if(S.rookie&&W.inside&&!reduced){W.rookIn.position.y=Math.abs(Math.sin(t*2.1+1))*.015;W.rookIn.rotation.y=Math.sin(t*.7)*.25}}
   if(W.bossIn&&W.inside&&!reduced){W.bossIn.position.y=Math.abs(Math.sin(t*1.7))*.02;W.bossIn.rotation.y=Math.sin(t*.45)*.3}
   const m=Math.floor(S.time);if(m!==W.lastMin){W.lastMin=m;$('#clock').innerHTML=clockText()}
   // 移動
   fameWalk();
-  const ag=W.agent,p=ag.position,canMove=!W.acting&&!modalOpen()&&!W.inside&&!W.tut&&!W.creator&&!W.riding,K=W.keys,spd=S.scooter&&!W.inside?2.4:1;
+  const ag=W.agent,p=ag.position,canMove=!W.acting&&!modalOpen()&&!W.inside&&!W.tut&&!W.creator&&!W.riding,K=W.keys,spd=scOK()&&!W.inside?2.4:1;
   let jx=W.joy.x+(K.r?1:0)-(K.l?1:0),jy=W.joy.y+(K.f?1:0)-(K.b?1:0);
   const jl=Math.hypot(jx,jy);if(jl>1){jx/=jl;jy/=jl}
   let moving=false;
@@ -3190,7 +3292,7 @@ function tick(dt,t){
         const keyI=Math.abs(kx)>Math.abs(ky)?(kx>0?3:1):(ky>0?0:2);document.querySelectorAll('#keys i').forEach((e,k)=>e.classList.toggle('on',k===keyI))}}
   }else if(W.inside){
     if(S.shopView==='top'){cam.position.set(W.IX+3.6,4.6,W.IZ+6.4);cam.lookAt(W.IX-.3,1,W.IZ-1)}
-    else{const sw=reduced?0:Math.sin(t*.6)*.02;cam.position.set(W.IX+sw,1.3+(reduced?0:Math.sin(t*1.3)*.008),W.IZ+.5);cam.lookAt(W.IX+.55+sw*2,.95,W.IZ-1.5)}
+    else{const sw=reduced?0:Math.sin(t*.6)*.02;cam.position.set(W.IX+sw,1.3+(reduced?0:Math.sin(t*1.3)*.008),W.IZ+.5);cam.lookAt(W.IX+(S.rookie?.2:.55)+sw*2,.95,W.IZ-1.5)}
     W.camSnap=true;
   }else if(W.view==='follow'){
     const z=W.zoom||1;let yaw=W.camYaw;let dist=4.4*z;
@@ -3222,7 +3324,7 @@ function ctxLabel(s){
   if(s.type==='banner')return S.banners[s.i]>0?'🚩 已掛紅布條':'🚩 掛紅布條';
   if(s.type==='corner'){const c=crowdOf(s.i);return`🪧 ${SEGS[s.i].n}舉牌・${c.label}`}
   if(s.type==='presale')return'🏗️ 進接待中心';
-  if(s.type==='bank')return'🏦 進銀行';
+  if(s.type==='bank')return bankOpen()?'🏦 進銀行':'🏦 休息中';
   if(s.type==='moto')return'🛵 進機車行';
   if(s.type==='mrt')return'🚇 搭捷運';
   if(s.type==='mart')return'🛒 進超市';
@@ -3284,6 +3386,8 @@ if(S&&(S.poles===undefined||S.time===undefined))S=null;
 if(S)S.listings.forEach(L=>{if(!L.flaws){L.flaws=L.flaw?[L.flaw]:[];L.rev=L.revealed&&L.flaw?{[L.flaw]:true}:{}}});
 if(S&&!S.ps)S.ps=newPresale();
 if(S&&!S.fame)S.fame={};
+if(S&&S.rank>=4&&!S.rookie)S.rookie={xp:0,taught:0,met:0};
+if(S&&S.scooter&&!S.sc)S.sc={fuel:4,tire:12,maint:10};
 if(S&&!S.story)S.story={};
 if(S&&!S.dd){S.dd={};S.fd=0;S.psd=0}
 if(S&&S.gd===undefined){S.gd=9;S.gdDone=true}
