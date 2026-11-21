@@ -719,8 +719,8 @@ const PS_DEVS=['城心建設','禾風建設','長晴建設','綠匠營造'];
 const PS_TYPES=['電梯大樓','兩房新成屋','小套房','華廈'];
 function newPresale(){
   const old=(typeof S!=='undefined'&&S&&S.ps)?S.ps.name:'';
-  const lo=Math.round(rnd(75,110))*10;
-  return{name:pick(PS_NAMES.filter(n=>n!==old)),dev:pick(PS_DEVS),total:24,units:Math.floor(rnd(14,22)),lo,hi:lo+Math.round(rnd(40,70))*10,boost:false};
+  const lo=Math.round(rnd(75,110))*10,tt=Math.floor(rnd(36,51));
+  return{name:pick(PS_NAMES.filter(n=>n!==old)),dev:pick(PS_DEVS),total:tt,units:tt-Math.floor(rnd(0,4)),lo,hi:lo+Math.round(rnd(40,70))*10,boost:false};
 }
 function psFit(C){
   const P=S.ps,tags=[];let ch=.25;
@@ -734,7 +734,7 @@ function psFit(C){
 function openPresale(){
   if(isLocked('presale')){say(lockMsg('presale'));return}
   const P=S.ps;
-  if(P.units<=0){openM(`<div class="big">🎉</div><h3>${P.name} 已完銷</h3><p class="small">代銷說下週一會推出新建案，到時再來幫忙找客人吧！</p><button class="btn alt" data-a="close">好</button>`);return}
+  if(P.units<=0){openM(`<div class="big">🎉</div><h3>${P.name} 已完銷</h3><p class="small">代銷說過兩天就會推出新建案，到時再來幫忙找客人吧！</p><button class="btn alt" data-a="close">好</button>`);return}
   const nc=S.customers.length,why=nc<1?'目前沒有客人，先打廣告或接電話':S.st<2?`體力不夠（還剩 ${S.st}）`:S.time>=DAY_END-5?'已經下班了，明天再來':'';
   openM(`<div class="big">🏗️</div><h3>${P.name}</h3><p class="small">${P.dev}・預售屋接待中心</p>
     <ul class="events">
@@ -1894,8 +1894,8 @@ function endDay(){
   const owner=free.length&&S.listings.length<cap()&&Math.random()<.12+S.rep/400;
   const ownerLot=owner?pick(free):-1;
   if(owner)ev.push('🏠 有屋主看到廣告，想委託給你！');
-  if(S.ps&&S.ps.units>0){const d=Math.floor(rnd(0,2.3));S.ps.units=Math.max(0,S.ps.units-d);
-    if(S.ps.units===0)ev.push(`🏗️ 「${S.ps.name}」完銷了！代銷說下週會推新建案`)}
+  if(S.ps&&S.ps.units>0){const d=Math.floor(rnd(0,3.4));S.ps.units=Math.max(0,S.ps.units-d);
+    if(S.ps.units===0)ev.push(`🏗️ 「${S.ps.name}」完銷了！代銷說過兩天就會推新建案`)}
   if(S.rookie){const lv=rookLv(),Rk=S.rookie;
     if(lv>=1&&Math.random()<[0,.3,.45,.55][lv]){const c=newCustomer();S.customers.push(c);ev.push(`👶 小新幫忙發傳單，招來一位客人：${c.name}想找${cWant(c)}`)}
     if(lv>=2)S.expo+=15;
@@ -1966,6 +1966,8 @@ function endDay(){
     S.week=0;
     if(S.ps){S.ps.boost=false;if(S.ps.units<=0){S.ps=newPresale();ev.push(`🏗️ 新建案「${S.ps.name}」開賣！代銷請大家幫忙帶客`)}}
   }
+  if(S.ps&&S.ps.units<=0){if(S.ps.soldDay===undefined)S.ps.soldDay=S.day;
+    if(S.day>=S.ps.soldDay+2){S.ps=newPresale();evM.push(`🏗️ 新建案「${S.ps.name}」開賣！代銷請大家幫忙帶客`)}}
   if(!S.ended)storyMorning(evM,dNew);
   if(dNew===0&&!S.ended){
     const post=S.rank>=RANKS.length-1&&(S.opening||S.shopOpened);
