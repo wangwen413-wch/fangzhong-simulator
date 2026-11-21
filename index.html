@@ -1011,7 +1011,7 @@ function showStatus(){
     ${S.mkt?`<div class="row"><span>📈 坪安股市</span><span>${S.mkt.idx} ${S.mkt.moodDays>0?(S.mkt.mood>0?'🔺 客人手頭寬':'🔻 客人手頭緊'):'➖'}</span></div>`:''}
     <div class="row"><span>💪 體力</span><span>${S.st} / ${S.maxSt}</span></div><div class="bar"><i class="g" style="width:${S.st/S.maxSt*100}%"></i></div>
     <div class="row" style="margin-top:10px"><span>${R0.n}</span><span>${fmt(S.week)} / ${fmt(R0.t)} 元</span></div><div class="bar"><i class="r" style="width:${clamp(S.week/R0.t*100,0,100)}%"></i></div>
-    <p class="small" style="text-align:left;margin-top:6px">本週業績達標、口碑夠好才能升職，本週還剩 ${7-((S.day-1)%7)} 天${S.scooter?(scOK()?'。🛵 已經有機車':'。🛵 機車沒油了，快去加油'):''}</p>
+    <p class="small" style="text-align:left;margin-top:6px">${S.rank>=RANKS.length-1&&(S.opening||S.shopOpened)?'你已經是店長了，存夠頭期款就能去開店，':'本週業績達標、口碑夠好才能升職，'}本週還剩 ${7-((S.day-1)%7)} 天${S.scooter?(scOK()?'。🛵 已經有機車':'。🛵 機車沒油了，快去加油'):''}</p>
     ${lg?`<details class="lgd"><summary>📍 地圖上可以做的事</summary><div class="legend">${lg.innerHTML}</div></details>`:''}
     <button class="btn alt" data-a="close">關閉</button>`);
 }
@@ -1953,7 +1953,8 @@ function endDay(){
         if(last){if(!S.opening&&!S.shopOpened){S.opening=1;ev.push(SAY('老蕭','👴','你的業績和口碑都夠了，是時候開自己的店了！去發大財銀行談開店貸款吧，頭期款要先準備好喔。'),'🏪 開店目標解鎖：存夠頭期款，到發大財銀行申請「開店貸款」')}}
         else{S.rank++;S.maxSt=N.st;S.st=N.st;if(S.rank===4&&!S.rookie){S.rookie={xp:0,taught:0,met:0};ev.push(SAY('老蕭','👴','來，這是新來的菜鳥小新，今天起交給你帶！他的位子在店裡左邊，有空就點他，教他做事。'))};ev.push(`🎊 本週業績達標，口碑也夠好！升職成「${N.n}」<br>💪 體力上限變成 ${N.st}，🏠 可以同時負責 ${N.cap} 間物件${N.unl?'<br>🔓 新解鎖：'+N.unl:''}${N.say?'<br>'+N.say:''}`)}
       }else if(!(last&&(S.opening||S.shopOpened)))ev.push(`📈 本週業績達標了！<br>不過老蕭說：「客人還不夠信任你，口碑再好一點才能${last?'開店':'升職'}。誠實告知房子的問題、準時帶看、別漏接電話，口碑就會慢慢起來。」`);
-    }else if(S.day<=8)ev.push(`🌱 第一週結束啦！業績還沒到 ${fmt(R.t)} 元沒關係（這週賺了 ${fmt(S.week)} 元）<br>老蕭：「第一週能撐下來就很棒了，下週繼續！」`);
+    }else if(S.rank>=RANKS.length-1&&(S.opening||S.shopOpened)){}
+    else if(S.day<=8)ev.push(`🌱 第一週結束啦！業績還沒到 ${fmt(R.t)} 元沒關係（這週賺了 ${fmt(S.week)} 元）<br>老蕭：「第一週能撐下來就很棒了，下週繼續！」`);
     else ev.push(`📉 本週業績沒達標（${fmt(S.week)} / ${fmt(R.t)} 元）<br>店長：「下週加油！」`);
     S.lowWeeks=made===0?(S.lowWeeks||0)+1:0;
     if(S.lowWeeks>=3&&!S.ended){
@@ -1966,7 +1967,9 @@ function endDay(){
     if(S.ps){S.ps.boost=false;if(S.ps.units<=0){S.ps=newPresale();ev.push(`🏗️ 新建案「${S.ps.name}」開賣！代銷請大家幫忙帶客`)}}
   }
   if(!S.ended)storyMorning(evM,dNew);
-  if(dNew===0&&!S.ended)evM.unshift(`📋 週一早會：老蕭宣布這週目標是 ${fmt(rk().t)} 元，達標就升職！`);
+  if(dNew===0&&!S.ended){
+    const post=S.rank>=RANKS.length-1&&(S.opening||S.shopOpened);
+    evM.unshift(post?'📋 週一早會：老蕭看著你笑：「你已經是店長了，這週別管業績，專心準備開自己的店吧！」':`📋 週一早會：老蕭宣布這週目標是 ${fmt(rk().t)} 元，達標就升職！`)}
   S.msg='早安！新的一天開始了，今天要去哪裡呢？';
   if(S.day>=4&&!S.saveTip){S.saveTip=1;S.msg+=' 小提醒：換手機或清瀏覽紀錄進度會不見，選單裡的「存檔碼」可以先備份。'}
   endCall();resetAgent();render();
@@ -2152,7 +2155,7 @@ document.addEventListener('click',e=>{
     motoserv:()=>{const c=S.sc=S.sc||scFresh(),cost={fuel:60,tire:800,maint:500}[k];if(!cost||S.money<cost)return;S.money-=cost;
       if(k==='fuel'){c.fuel=5;gong()}else if(k==='tire')c.tire=14;else c.maint=12;
       say({fuel:'⛽ 加滿油了！可以騎好幾天',tire:'🛞 換了新輪胎，跑起來穩穩的',maint:'🔧 保養完了，引擎聲音變順了'}[k]);openMoto()},
-    refuse:()=>askRefuse(id),refuseok:()=>doRefuse(id),report:()=>askReport(id),reportok:()=>doReport(id),teach:()=>perform('teach',{}),
+    refuse:()=>askRefuse(id),refuseok:()=>doRefuse(id),report:()=>askReport(id),reportok:()=>doReport(id),teach:()=>{closeM();perform('teach',{})},
     pspick:psPick,psgo:()=>{closeM();perform('presale',{cid:+k})},
     signskip:skipSign,signowner:()=>{const L=W.ownerLot;if(L>=0&&S.listings.length<cap()&&freeLots().includes(L))drawCard('公園的阿伯想賣房！',L);else closeM()},
     callowner:()=>{const fl=freeLots();if(fl.length&&S.listings.length<cap())drawCard('屋主打電話來委託！',pick(fl));else{closeM();say('手上物件滿了，只好婉拒…')}},
