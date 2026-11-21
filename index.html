@@ -1369,7 +1369,7 @@ function finishAct(){
   if(k==='teach'){const Rk=S.rookie;if(Rk){Rk.xp++;Rk.taught=S.day;const lv=rookLv();
     const lines=['你教小新怎麼接電話、怎麼笑著跟客人說「請坐」。','你帶小新看了一份謄本，教他哪裡要特別小心。','你示範怎麼跟屋主聊天、套出房子的真正問題。','你教小新怎麼貼傳單才不會被清潔隊清掉。'];
     let t=pick(lines)+`（小新的成長：${'⭐'.repeat(lv)||'新手'}）`;
-    if(Rk.xp===3||Rk.xp===7||Rk.xp===12){S.rep+=2;t+=` 🎉 小新進步了！${['','現在會幫忙發傳單、招攬客人了','現在能獨當一面，會自己找客人','已經是半個老鳥，偶爾會幫你簽到案子'][lv]}。⭐ 口碑 +2`}
+    if(Rk.xp===3||Rk.xp===7||Rk.xp===12){S.rep+=2;t+=` 🎉 小新進步了！${['','現在會幫忙發傳單、招攬客人了','現在能獨當一面，會招客人，也會跑去幫你找物件','已經是半個老鳥，會找物件、招客人，還會幫你賣一般約的物件'][lv]}。⭐ 口碑 +2`}
     say(t)}else render();return}
   if(k==='presale'){
     const C=findC(ctx.cid),P=S.ps;if(!C||!P){render();return}
@@ -1456,7 +1456,7 @@ function teachAsk(){
   const Rk=S.rookie;if(!Rk)return;
   const lv=rookLv(),why=Rk.taught===S.day?'今天已經教過了':S.st<1?'體力不夠':S.time>=DAY_END-35?'快下班了':'';
   openM(`<div class="big">👶</div><h3>新人 小新</h3><p class="small">老蕭交給你帶的菜鳥。多教他，他學會了就會幫你發傳單、招攬客人，還會幫你拿獎金。</p>
-    <ul class="events"><li>成長：${'⭐'.repeat(lv)||'新手'}（教過 ${Rk.xp} 次）</li><li>${['還什麼都不會','會幫忙發傳單，有機會招來客人','能獨當一面，常常自己找客人','半個老鳥，偶爾會簽到案子，公司給你輔導獎金'][lv]}</li></ul>
+    <ul class="events"><li>成長：${'⭐'.repeat(lv)||'新手'}（教過 ${Rk.xp} 次）</li><li>${['還什麼都不會','會幫忙發傳單，有機會招來客人','能獨當一面，會招客人，也會幫你找物件（一般約）','半個老鳥，會找物件、招客人，還會幫你賣一般約的物件，分潤給你'][lv]}</li></ul>
     <button class="btn" data-a="teach" ${why?'disabled':''}>🎓 教小新做事（體力 1，30 分鐘，一天一次）${why?`<br><span style="font-size:13px">${why}</span>`:''}</button><button class="btn alt" data-a="close">先不要</button>`)}
 function openPC(){
   if(W&&W.acting)return;
@@ -1899,6 +1899,17 @@ function endDay(){
   if(S.rookie){const lv=rookLv(),Rk=S.rookie;
     if(lv>=1&&Math.random()<[0,.3,.45,.55][lv]){const c=newCustomer();S.customers.push(c);ev.push(`👶 小新幫忙發傳單，招來一位客人：${c.name}想找${cWant(c)}`)}
     if(lv>=2)S.expo+=15;
+    if(lv>=2&&Math.random()<[0,0,.25,.35][lv]&&S.listings.length<cap()){
+      const fl=free.filter(i=>i!==ownerLot);
+      if(fl.length){const lot=pick(fl),L=newListing(lot);L.excl=false;L.rival=0;S.listings.push(L);free.splice(free.indexOf(lot),1);
+        ev.push(`👶 小新跑去按電鈴，幫你談到一間一般約的委託：「${L.name}」！（${DIST[L.d].n}，開價 ${L.price} 萬）`)}}
+    if(lv>=3){const el=S.listings.filter(l=>!l.excl&&!hidden(l).length&&!(l.insp));
+      if(el.length&&S.customers.length&&Math.random()<.3){
+        const L=pick(el),C=S.customers.splice(Math.floor(Math.random()*S.customers.length),1)[0];
+        const price=Math.round(askPrice(L)*rnd(.93,.99)),comm=Math.round(price*30*.5);
+        S.listings=S.listings.filter(x=>x.id!==L.id);S.money+=comm;S.week+=comm;S.total+=comm;S.deals++;S.rep+=2;addFame(L.d,6);S.dd[L.d]=(S.dd[L.d]||0)+1;
+        ev.push(`👶 小新幫你把一般約的「${L.name}」賣給了${C.name}，成交 ${price} 萬！帶新人的分潤 +${fmt(comm)} 元，⭐ 口碑上升`)}
+      else if(S.listings.some(l=>!l.excl&&hidden(l).length)&&Math.random()<.15)ev.push('👶 小新看了你的物件，皺著眉說：「學長，這間好像有問題，我不敢亂賣，你先查一下吧」')}
     if(lv>=3&&Math.random()<.2){S.money+=600;S.week+=600;S.total+=600;ev.push('👶 小新自己談成一筆小案子，公司發了 600 元輔導獎金給你')}
     else if(lv===0&&Rk.taught&&S.day-Rk.taught>=4&&Math.random()<.3){ev.push('👶 小新有點迷惘地問：「學長，今天可以教我嗎？」（點店裡左邊的小新，可以教他做事）')}}
   if(S.scooter){const c=S.sc=S.sc||scFresh(),f0=c.fuel;c.fuel=Math.max(0,c.fuel-1);c.tire--;c.maint--;
